@@ -1,0 +1,2592 @@
+{
+ "patches": [
+  {
+   "id": "platform-init",
+   "file": "GameApp.as",
+   "function": "s/method/main",
+   "mode": "bytecode",
+   "where": "before",
+   "anchor": "\"{{startup}}\"\\), 0$",
+   "call": "bh.platform:Platform.init",
+   "args": [],
+   "offset": -1
+  },
+  {
+   "id": "hook-startup",
+   "file": "GameApp.as",
+   "function": "s/method/main",
+   "mode": "bytecode",
+   "where": "after",
+   "anchor": "\"{{startup}}\"\\), 0$",
+   "hook": "afterStartup",
+   "args": []
+  },
+  {
+   "id": "hook-tables-registered",
+   "file": "GameApp.as",
+   "function": "s/method/registerDataTables",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "tablesRegistered",
+   "args": []
+  },
+  {
+   "id": "hook-table-parsing",
+   "file": "ArchiveLoader.as",
+   "function": "s/method/parseTable",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "tableParsing",
+   "args": [
+    "param1",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-screen-created",
+   "file": "ScreenBase.as",
+   "function": "i/method/createClip",
+   "mode": "bytecode",
+   "where": "after",
+   "anchor": "^callpropvoid\\s+.*\"OnCreateScreen\"\\), 0$",
+   "hook": "screenCreated",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-game-created",
+   "file": "GameApp.as",
+   "function": "s/method/startMain",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "gameCreated",
+   "args": [
+    "GameApp.mainInstance"
+   ]
+  },
+  {
+   "id": "hook-file-loaded",
+   "file": "ArchiveLoader.as",
+   "function": "s/method/tickLoading",
+   "mode": "bytecode",
+   "where": "before",
+   "anchor": "\"{{method_370}}\"\\), 1$",
+   "offset": -2,
+   "hook": "fileLoaded",
+   "args": [
+    "local5"
+   ]
+  },
+  {
+   "id": "hook-load-set-loaded",
+   "file": "ArchiveLoader.as",
+   "function": "s/method/tickLoading",
+   "mode": "bytecode",
+   "where": "after",
+   "anchor": "^(init|set)property\\s+.*\"{{loadedSetCount}}\"\\)$",
+   "hook": "loadSetLoaded",
+   "args": [
+    "local11"
+   ]
+  },
+  {
+   "id": "hook-game-state",
+   "file": "GameCore.as",
+   "function": "i/method/setGameState",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "gameStateChanging",
+   "args": [
+    "this.gameState",
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-settings-attached",
+   "file": "SavedData.as",
+   "function": "s/method/attach",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "settingsAttached",
+   "args": [
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-setting-setString",
+   "file": "SavedData.as",
+   "function": "s/method/setString",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "settingWritten",
+   "args": [
+    "param1",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-setting-setUint",
+   "file": "SavedData.as",
+   "function": "s/method/setUint",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "settingWritten",
+   "args": [
+    "param1",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-setting-setInt",
+   "file": "SavedData.as",
+   "function": "s/method/setInt",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "settingWritten",
+   "args": [
+    "param1",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-setting-setNumber",
+   "file": "SavedData.as",
+   "function": "s/method/setNumber",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "settingWritten",
+   "args": [
+    "param1",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-setting-setArray",
+   "file": "SavedData.as",
+   "function": "s/method/setArray",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "settingWritten",
+   "args": [
+    "param1",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-setting-setBool",
+   "file": "SavedData.as",
+   "function": "s/method/setBool",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "settingWritten",
+   "args": [
+    "param1",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-setting-setBytes",
+   "file": "SavedData.as",
+   "function": "s/method/setBytes",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "settingWritten",
+   "args": [
+    "param1",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-key-down",
+   "file": "GameCore.as",
+   "function": "i/method/onKeyDown",
+   "mode": "bytecode",
+   "where": "start",
+   "call": "bh.platform:HookSites.keyDown",
+   "args": [
+    "param1"
+   ],
+   "returns": "skip"
+  },
+  {
+   "id": "hook-key-up",
+   "file": "GameCore.as",
+   "function": "i/method/onKeyUp",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "keyUp",
+   "args": [
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-controller-added",
+   "file": "GameCore.as",
+   "function": "i/method/onDeviceAdded",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "controllerAdded",
+   "args": [
+    "param1.device"
+   ]
+  },
+  {
+   "id": "hook-controller-removed",
+   "file": "GameCore.as",
+   "function": "i/method/onDeviceRemoved",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "controllerRemoved",
+   "args": [
+    "param1.device"
+   ]
+  },
+  {
+   "id": "hook-tcp-connect",
+   "file": "TcpConnection.as",
+   "function": "i/method/Connect",
+   "mode": "bytecode",
+   "where": "start",
+   "call": "bh.platform.net:GameTls.connecting",
+   "args": [
+    "this",
+    "param1",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-packet-sending-tcp",
+   "file": "TcpConnection.as",
+   "function": "i/method/sendPacket",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "packetSending",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-packet-sending-udp",
+   "file": "UdpConnection.as",
+   "function": "i/method/sendPacket",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "packetSending",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-packet-received",
+   "file": "LinkUpdater.as",
+   "function": "i/method/dispatchPacket",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "packetReceived",
+   "args": [
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-main-menu-buttons",
+   "file": "ScreenMainMenu.as",
+   "function": "i/method/rebuildButtons",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "mainMenuButtonsBuilt",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-main-menu-layout",
+   "file": "ScreenMainMenu.as",
+   "function": "i/method/method_8082",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "mainMenuLayout",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-main-menu-input",
+   "file": "ScreenMainMenu.as",
+   "function": "i/method/handleMenuInput",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "mainMenuInput",
+   "args": [
+    "this",
+    "param1",
+    "param2"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-main-menu-focus",
+   "file": "ScreenMainMenu.as",
+   "function": "i/method/method_6210",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "mainMenuFocusChanged",
+   "args": [
+    "this",
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-main-menu-highlight",
+   "file": "ScreenMainMenu.as",
+   "function": "i/method/method_6749",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "mainMenuHighlight",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-strings-loaded",
+   "file": "Localization.as",
+   "function": "i/method/method_7158",
+   "mode": "bytecode",
+   "where": "end",
+   "hook": "stringsLoaded",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-input-sampled",
+   "file": "class_295.as",
+   "function": "i/method/method_8123",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "inputSampled",
+   "args": [
+    "this",
+    "param1",
+    "this.var_13831"
+   ]
+  },
+  {
+   "id": "hook-color-scheme-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_6782",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "colorSchemeOwned",
+   "args": [
+    "param1",
+    "param2"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-input-sampling",
+   "file": "class_295.as",
+   "function": "i/method/method_8123",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "inputSampling",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-csv-parsing",
+   "file": "ArchiveLoader.as",
+   "function": "s/method/method_1409",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "csvParsing",
+   "filter": true,
+   "args": [
+    "param2",
+    "param1",
+    "param3"
+   ],
+   "sets_param": 2,
+   "convert": "String"
+  },
+  {
+   "id": "hook-costume-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_8971",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "costumeOwned",
+   "args": [
+    "param1",
+    "param2"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-weapon-skin-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_6212",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'WeaponSkin'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-avatar-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_615",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'Avatar'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-taunt-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_6385",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'Taunt'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-emoji-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_7129",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'Emoji'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-ko-effect-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_5818",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'KOEffect'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-sidekick-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_3006",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'SpawnBot'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-border-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_3403",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'Border'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-podium-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_8260",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'Podium'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-player-theme-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_8752",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'PlayerTheme'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-companion-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_3353",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'Companion'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-file-resolving",
+   "file": "ArchiveFile.as",
+   "function": "i/method/method_4504",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "fileResolving",
+   "filter": true,
+   "args": [
+    "null",
+    "this.fileName",
+    "this.fileType"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-palette-swap",
+   "file": "class_176.as",
+   "function": "s/method/method_7048",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Palette.swap",
+   "args": [
+    "param1",
+    "param2",
+    "param3"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-skin-icon",
+   "file": "class_687.as",
+   "function": "s/method/method_1714",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:ContentMods.icon",
+   "args": [
+    "param1",
+    "param3"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-training-podiums",
+   "file": "class_526.as",
+   "function": "i/method/method_6054",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:TrainingPlayers.podiums",
+   "args": [
+    "this"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-training-join",
+   "file": "class_104.as",
+   "function": "i/method/method_1288",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:TrainingPlayers.join",
+   "args": [
+    "this",
+    "param1",
+    "param2"
+   ],
+   "returns": "skip"
+  },
+  {
+   "id": "hook-training-input",
+   "file": "class_526.as",
+   "function": "i/method/method_2098",
+   "where": "after",
+   "anchor": "^setlocal\\s+4$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "call": "bh.platform:TrainingPlayers.inputType",
+   "args": [
+    "this",
+    "param2"
+   ],
+   "sets_param": 4
+  },
+  {
+   "id": "hook-training-max-players",
+   "file": "class_104.as",
+   "function": "i/method/method_6197",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:TrainingPlayers.maxPlayers",
+   "args": [
+    "this"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-training-back",
+   "file": "class_526.as",
+   "function": "i/method/method_6548",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:TrainingPlayers.back",
+   "args": [
+    "this",
+    "param1",
+    "param2",
+    "param3"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-training-apply-look",
+   "file": "class_551.as",
+   "function": "i/method/method_8652",
+   "where": "after",
+   "anchor": "^setlocal\\s+15$",
+   "occurrence": 2,
+   "mode": "bytecode",
+   "call": "bh.platform:TrainingPlayers.applyingLook",
+   "args": [
+    "this",
+    "param14"
+   ],
+   "sets_param": 15
+  },
+  {
+   "id": "hook-bot-level-setup",
+   "file": "class_40.as",
+   "function": "i/method/method_1574",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.setUp",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-bot-level-tune",
+   "file": "class_40.as",
+   "function": "i/method/method_1574",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.tune",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-controller-focus",
+   "file": "Controller.as",
+   "function": "i/method/method_6406",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Controllers.unfocused",
+   "args": [
+    "this"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-controllers-listening",
+   "file": "GameCore.as",
+   "function": "i/method/method_4641",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:Controllers.listening",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-bot-patience",
+   "file": "class_40.as",
+   "function": "i/method/method_1360",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.patience",
+   "args": [
+    "this",
+    "param2",
+    "param3",
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-bot-react",
+   "file": "class_40.as",
+   "function": "i/method/method_1360",
+   "where": "after",
+   "anchor": "^setlocal\\s+7$",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.react",
+   "args": [
+    "this",
+    "param3",
+    "param4"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-bot-think",
+   "file": "class_40.as",
+   "function": "i/method/Think",
+   "where": "after",
+   "anchor": "^initproperty\\s+QName\\(PackageNamespace\\(\"\"\\), \"{{var_5696}}\"\\)$",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.thought",
+   "args": [
+    "this",
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-bot-dodge",
+   "file": "class_40.as",
+   "function": "i/method/Think",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.dodge",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "returns": "skip"
+  },
+  {
+   "id": "hook-bot-lead",
+   "file": "class_637.as",
+   "function": "s/method/method_3029",
+   "where": "before",
+   "anchor": "^returnvalue$",
+   "occurrence": 2,
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.lead",
+   "args": [
+    "param3",
+    "param4"
+   ]
+  },
+  {
+   "id": "hook-bot-engage",
+   "file": "class_184.as",
+   "function": "i/method/method_1767",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.engage",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-bot-hold-jumps",
+   "file": "class_185.as",
+   "function": "i/method/method_7010",
+   "where": "after",
+   "anchor": "^setlocal\\s+14$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.holdJumps",
+   "args": [
+    "this",
+    "param1",
+    "local14",
+    "local2"
+   ],
+   "sets_param": 14
+  },
+  {"id": "hook-bot-recover-ledge", "file": "class_40.as", "function": "i/method/method_4150", "where": "end", "mode": "bytecode", "call": "bh.platform:BotLevels.recoverLedge", "args": ["this", "param2"]},
+  {
+   "id": "hook-bot-level-name",
+   "file": "class_493.as",
+   "function": "s/method/method_3891",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.shortName",
+   "args": [
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-bot-level-full-name",
+   "file": "class_493.as",
+   "function": "s/method/method_8259",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.fullName",
+   "args": [
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-training-bot-levels",
+   "file": "class_551.as",
+   "function": "s/method/method_8204",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:BotLevels.trainingLists",
+   "args": []
+  },
+  {
+   "id": "hook-match-start-collecting",
+   "file": "GameCore.as",
+   "function": "i/method/method_7162",
+   "mode": "bytecode",
+   "where": "after",
+   "anchor": "^(init|set)property\\s+.*\"{{var_843}}\"\\)$",
+   "hook": "matchStartCollecting",
+   "args": [
+    "this"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-precache-collecting",
+   "file": "class_266.as",
+   "function": "s/method/method_8416",
+   "mode": "bytecode",
+   "where": "start",
+   "call": "bh.platform:HookSites.precacheCollecting",
+   "args": [
+    "param1",
+    "param2"
+   ],
+   "returns": "skip"
+  },
+  {
+   "id": "hook-gfx-resolving",
+   "file": "class_170.as",
+   "function": "s/method/method_6356",
+   "mode": "bytecode",
+   "where": "start",
+   "maxstack": 4,
+   "note": "if(Hooks.gfxResolving.count > 0) Hooks.gfxResolving.fire2(param1, param2)",
+   "code": [
+    "getlex QName(PackageNamespace(\"bh.platform\"), \"Hooks\")",
+    "getproperty QName(PackageNamespace(\"\"), \"gfxResolving\")",
+    "getproperty QName(PackageNamespace(\"\"), \"count\")",
+    "pushbyte 0",
+    "ifle @skip",
+    "getlex QName(PackageNamespace(\"bh.platform\"), \"Hooks\")",
+    "getproperty QName(PackageNamespace(\"\"), \"gfxResolving\")",
+    "getlocal1",
+    "getlocal2",
+    "callpropvoid QName(PackageNamespace(\"\"), \"fire2\"), 2",
+    "@skip:"
+   ]
+  },
+  {
+   "id": "hook-launch-args",
+   "file": "GameApp.as",
+   "function": "s/method/method_7196",
+   "mode": "bytecode",
+   "where": "start",
+   "hook": "launchArgs",
+   "filter": true,
+   "args": [
+    "param1"
+   ],
+   "sets_param": 1,
+   "as": "Array"
+  },
+  {
+   "id": "hook-settings-screen-shown",
+   "file": "class_433.as",
+   "function": "i/method/method_6837",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "settingsScreenShown",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-level-art-loading",
+   "file": "class_250.as",
+   "function": "i/method/method_3405",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "levelArtLoading",
+   "args": [
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-data-check-failed",
+   "file": "class_135.as",
+   "function": "s/method/method_3866",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "dataCheckFailed",
+   "args": [
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-game-error",
+   "file": "GameCore.as",
+   "function": "i/method/method_2673",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "gameError",
+   "args": [
+    "param1"
+   ]
+  },
+  {
+   "id": "fix-skin-wheel-start",
+   "file": "class_666.as",
+   "function": "i/method/method_3963",
+   "mode": "bytecode",
+   "where": "after",
+   "anchor": "^setlocal\\s+13$",
+   "occurrence": 1,
+   "maxstack": 3,
+   "note": "if(_loc4_ != null && _loc8_.indexOf(_loc4_) >= 0) _loc13_ = uint(_loc8_.indexOf(_loc4_))",
+   "code": [
+    "getlocal 4",
+    "iffalse @skip",
+    "getlocal 8",
+    "getlocal 4",
+    "callproperty QName(Namespace(\"http://adobe.com/AS3/2006/builtin\"), \"indexOf\"), 1",
+    "convert_i",
+    "dup",
+    "pushbyte 0",
+    "iflt @drop",
+    "convert_u",
+    "setlocal 13",
+    "jump @skip",
+    "@drop:",
+    "pop",
+    "@skip:"
+   ]
+  },
+  {
+   "id": "fix-colour-wheel-start",
+   "file": "class_666.as",
+   "function": "i/method/method_7807",
+   "mode": "bytecode",
+   "where": "after",
+   "anchor": "^setlocal\\s+9$",
+   "occurrence": 1,
+   "maxstack": 3,
+   "note": "if(_loc8_ != null && var_5670 != null && var_5670.length == _loc3_.length && var_5670.indexOf(_loc8_) >= 0) _loc9_ = uint(var_5670.indexOf(_loc8_))",
+   "code": [
+    "getlocal 8",
+    "iffalse @skip",
+    "getlocal0",
+    "getproperty QName(PackageNamespace(\"\"), \"{{var_5670}}\")",
+    "iffalse @skip",
+    "getlocal0",
+    "getproperty QName(PackageNamespace(\"\"), \"{{var_5670}}\")",
+    "getproperty QName(PackageNamespace(\"\"), \"length\")",
+    "convert_i",
+    "getlocal3",
+    "getproperty QName(PackageNamespace(\"\"), \"length\")",
+    "convert_i",
+    "ifne @skip",
+    "getlocal0",
+    "getproperty QName(PackageNamespace(\"\"), \"{{var_5670}}\")",
+    "getlocal 8",
+    "callproperty QName(Namespace(\"http://adobe.com/AS3/2006/builtin\"), \"indexOf\"), 1",
+    "convert_i",
+    "dup",
+    "pushbyte 0",
+    "iflt @drop",
+    "convert_u",
+    "setlocal 9",
+    "jump @skip",
+    "@drop:",
+    "pop",
+    "@skip:"
+   ]
+  },
+  {
+   "id": "hook-options-menu-building",
+   "file": "class_207.as",
+   "function": "i/method/method_8352",
+   "where": "after",
+   "anchor": "^initproperty\\s+QName\\(PackageNamespace\\(\"\"\\), \"{{var_4818}}\"\\)$",
+   "mode": "bytecode",
+   "hook": "optionsMenuBuilding",
+   "args": [
+    "this",
+    "this.var_4818"
+   ]
+  },
+  {
+   "id": "hook-options-menu-shown",
+   "file": "class_207.as",
+   "function": "i/method/OnInitDisplay",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "optionsMenuShown",
+   "args": [
+    "this",
+    "this.var_4818"
+   ]
+  },
+  {
+   "id": "hook-legend-step",
+   "file": "class_123.as",
+   "function": "i/method/method_1118",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "legendStepping",
+   "args": [
+    "this",
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-simulation-frame",
+   "file": "GameCore.as",
+   "function": "i/method/method_971",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "simulationFrame",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-frame-starting",
+   "file": "Main.as",
+   "function": "i/method/onEnterFrame",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "frameStarting",
+   "args": []
+  },
+  {
+   "id": "hook-frame-rendering",
+   "file": "class_582.as",
+   "function": "i/method/method_769",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "frameRendering",
+   "args": []
+  },
+  {
+   "id": "hook-file-deferring",
+   "file": "ArchiveLoader.as",
+   "function": "s/method/method_4428",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "fileDeferring",
+   "args": [
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-art-pending-checking",
+   "file": "ArchiveLoader.as",
+   "function": "s/method/method_2616",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "artPendingChecking",
+   "args": [],
+   "consumable": true,
+   "returns": "false"
+  },
+  {
+   "id": "hook-simulation-rollback",
+   "file": "GameCore.as",
+   "function": "i/method/method_971",
+   "where": "before",
+   "anchor": "^getlocal2$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "hook": "simulationRollback",
+   "args": [
+    "this"
+   ],
+   "consumable": true,
+   "sets_local": 2
+  },
+  {
+   "id": "hook-bot-match-time",
+   "file": "class_40.as",
+   "function": "i/method/method_8517",
+   "where": "before",
+   "anchor": "^getlocal\\s+16$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "hook": "botMatchTime",
+   "args": [
+    "this.owner"
+   ],
+   "consumable": true,
+   "sets_local": 16
+  },
+  {
+   "id": "hook-replay-end-match-time",
+   "file": "class_321.as",
+   "function": "i/method/method_395",
+   "where": "before",
+   "anchor": "^getlocal2$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "hook": "replayEndMatchTime",
+   "args": [
+    "this.owner"
+   ],
+   "consumable": true,
+   "sets_local": 2
+  },
+  {
+   "id": "hook-pause-menu-pausing",
+   "file": "class_494.as",
+   "function": "i/method/OnInitDisplay",
+   "mode": "bytecode",
+   "where": "before",
+   "anchor": "^findproperty\\s+.*\"{{owner}}\"\\)$",
+   "occurrence": 4,
+   "maxstack": 3,
+   "end_anchor": "^callpropvoid\\s+.*\"{{method_4489}}\"\\), 0$",
+   "note": "if(Hooks.pauseMenuPausing.fireUntilHandled1(owner)) { owner.var_13582 = 0; } else owner.method_4489()",
+   "code": [
+    "getlex QName(PackageNamespace(\"bh.platform\"), \"Hooks\")",
+    "getproperty QName(PackageNamespace(\"\"), \"pauseMenuPausing\")",
+    "getlocal0",
+    "getproperty QName(PackageNamespace(\"\"), \"{{owner}}\")",
+    "callproperty QName(PackageNamespace(\"\"), \"fireUntilHandled1\"), 1",
+    "iffalse @go",
+    "getlocal0",
+    "getproperty QName(PackageNamespace(\"\"), \"{{owner}}\")",
+    "pushbyte 0",
+    "setproperty QName(PackageNamespace(\"\"), \"{{var_13582}}\")",
+    "jump @end",
+    "@go:"
+   ]
+  },
+  {
+   "id": "hook-training-menu-built",
+   "file": "class_551.as",
+   "function": "i/method/method_77",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "trainingMenuBuilt",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-training-row-state",
+   "file": "class_551.as",
+   "function": "i/method/method_7359",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "trainingRowState",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-training-row-value",
+   "file": "class_551.as",
+   "function": "i/method/method_610",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "trainingRowValue",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-training-row-change",
+   "file": "class_551.as",
+   "function": "i/method/method_2907",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "trainingRowChange",
+   "args": [
+    "this",
+    "param1",
+    "param2"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-main-menu-tile",
+   "file": "class_462.as",
+   "function": "i/method/method_6214",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "mainMenuTilePressed",
+   "args": [
+    "this",
+    "param2"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-add-friend",
+   "file": "class_201.as",
+   "function": "i/method/method_8041",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "addFriendPressed",
+   "args": [
+    "this"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-friends-menu",
+   "file": "class_200.as",
+   "function": "i/method/method_619",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "friendsMenuBuilt",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-friends-tab-input",
+   "file": "class_200.as",
+   "function": "i/method/HandleInput",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "friendsTabInput",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-level-select-input",
+   "file": "ScreenLevelSelect.as",
+   "function": "i/method/HandleInput",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "levelSelectInput",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-friends-tab-refreshed",
+   "file": "class_200.as",
+   "function": "i/method/OnRefreshScreen",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "friendsTabRefreshed",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-guild-create-pressed",
+   "file": "class_604.as",
+   "function": "i/method/method_5669",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "guildCreatePressed",
+   "args": [
+    "this",
+    "param2"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-store-created",
+   "file": "class_479.as",
+   "function": "i/method/OnCreateScreen",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:NoStore.storeCreated",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-store-highlight",
+   "file": "class_479.as",
+   "function": "i/method/UpdateHighlighter",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:NoStore.storeHighlight",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "returns": "skip"
+  },
+  {
+   "id": "hook-buy-coins",
+   "file": "GameCore.as",
+   "function": "i/method/method_1307",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:NoStore.buyCoins",
+   "args": [
+    "this"
+   ],
+   "returns": "skip"
+  },
+  {
+   "id": "hook-guild-create-shown",
+   "file": "class_604.as",
+   "function": "i/method/OnInitDisplay",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "guildCreateShown",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-skirmish-faction-rewards",
+   "file": "class_530.as",
+   "function": "i/method/method_6655",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "skirmishFactionRewards",
+   "args": [
+    "this",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-podium-add-friend",
+   "file": "class_525.as",
+   "function": "i/method/method_6144",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "podiumAddFriendPressed",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-guild-hub-member-menu",
+   "file": "class_199.as",
+   "function": "i/method/method_5175",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "guildMemberMenuBuilt",
+   "args": [
+    "this",
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-guild-hub-add-friend",
+   "file": "class_199.as",
+   "function": "i/method/method_8041",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "guildAddFriendPressed",
+   "args": [
+    "this"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-guild-members-member-menu",
+   "file": "class_609.as",
+   "function": "i/method/method_5175",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "guildMemberMenuBuilt",
+   "args": [
+    "this",
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-guild-members-add-friend",
+   "file": "class_609.as",
+   "function": "i/method/method_8041",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "guildAddFriendPressed",
+   "args": [
+    "this"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-language-loading",
+   "file": "Localization.as",
+   "function": "i/method/method_8388",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "languageLoading",
+   "args": [
+    "this"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-camera-placed",
+   "file": "class_52.as",
+   "function": "i/method/method_2694",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "cameraPlaced",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-frame-presenting",
+   "file": "class_582.as",
+   "function": "i/method/method_769",
+   "where": "after",
+   "anchor": "^setlocal\\s+4$",
+   "mode": "bytecode",
+   "call": "bh.platform:Screenshot.presenting",
+   "args": [
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-legend-tinted",
+   "file": "class_123.as",
+   "function": "i/method/method_6519",
+   "where": "end",
+   "mode": "bytecode",
+   "hook": "legendTinted",
+   "args": [
+    "this",
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-ko-effect-made",
+   "file": "TrailEffect.as",
+   "function": "i/method/method_4337",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:ReducedFlashes.koEffect",
+   "args": [
+    "local5"
+   ]
+  },
+  {
+   "id": "hook-ko-burst-made",
+   "file": "TrailEffect.as",
+   "function": "i/method/method_6741",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:ReducedFlashes.koEffect",
+   "args": [
+    "local6"
+   ]
+  },
+  {
+   "id": "hook-match-stats-recording",
+   "file": "GameCore.as",
+   "function": "i/method/method_3533",
+   "where": "after",
+   "anchor": "^initproperty\\s+QName\\(PackageNamespace\\(\"\"(, \"#\\d+\")?\\), \"{{var_2095}}\"\\)$",
+   "mode": "bytecode",
+   "hook": "matchStatsRecording",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-stats-dumping",
+   "file": "class_167.as",
+   "function": "i/method/method_4967",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "statsDumping",
+   "args": [
+    "this"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-scoreboard-input",
+   "file": "class_525.as",
+   "function": "i/method/method_2098",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "scoreboardInput",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-profile-for-slot",
+   "file": "class_310.as",
+   "function": "i/method/method_7609",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Profiles.forSlot",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-profile-for-slot-2",
+   "file": "class_310.as",
+   "function": "i/method/method_1381",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Profiles.forSlot",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-profile-name-for-slot",
+   "file": "class_310.as",
+   "function": "i/method/method_7921",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Profiles.nameForSlot",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-keybinds-load-profile",
+   "file": "GameCore.as",
+   "function": "i/method/method_255",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Profiles.keySuffix",
+   "args": [
+    "param2"
+   ],
+   "sets_param": 2
+  },
+  {
+   "id": "hook-keybinds-save-profile",
+   "file": "GameCore.as",
+   "function": "i/method/method_6748",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Profiles.keySuffix",
+   "args": [
+    "param2"
+   ],
+   "sets_param": 2
+  },
+  {
+   "id": "hook-keybinds-menu-profile",
+   "file": "GameCore.as",
+   "function": "i/method/setupKeyboardBindings",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Profiles.keySuffix",
+   "args": [
+    "param2"
+   ],
+   "sets_param": 2
+  },
+  {
+   "id": "hook-mode-rules-type",
+   "file": "class_345.as",
+   "function": "i/method/method_8642",
+   "where": "after",
+   "anchor": "^setlocal1$",
+   "mode": "bytecode",
+   "call": "bh.platform:ModModes.rulesType",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "sets_param": 1
+  },
+  {
+   "id": "hook-bot-mode-state",
+   "file": "class_40.as",
+   "function": "i/method/method_6291",
+   "where": "before",
+   "anchor": "^getlocal1$",
+   "occurrence": 5,
+   "mode": "bytecode",
+   "call": "bh.platform:HillBot.pick",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "sets_param": 1
+  },
+  {
+   "id": "hook-mode-rules-class",
+   "file": "class_345.as",
+   "function": "i/method/method_8642",
+   "where": "before",
+   "anchor": "^pushnull$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "call": "bh.platform:ModModes.rulesCreated",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-setups-input",
+   "file": "class_526.as",
+   "function": "i/method/method_2098",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Setups.input",
+   "args": [
+    "this",
+    "param1",
+    "param2"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-controls-profile",
+   "file": "class_411.as",
+   "function": "i/method/method_7965",
+   "where": "after",
+   "anchor": "^setlocal\\s+4$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "call": "bh.platform:Profiles.controlsProfile",
+   "args": [
+    "this",
+    "param1",
+    "param4"
+   ],
+   "sets_param": 4
+  },
+  {
+   "id": "hook-music-playing",
+   "file": "class_727.as",
+   "function": "s/method/method_4888",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:MusicPacks.play",
+   "args": [
+    "param1",
+    "param2"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-music-stopping",
+   "file": "class_727.as",
+   "function": "s/method/method_7661",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "musicStopping",
+   "args": [
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-window-mode-step",
+   "file": "GameApp.as",
+   "function": "s/method/method_7280",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "windowModeStepping",
+   "args": [
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-window-mode-apply",
+   "file": "GameApp.as",
+   "function": "s/method/method_8164",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "windowModeApplying",
+   "args": [
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "hook-window-mode-name",
+   "file": "GameApp.as",
+   "function": "s/method/method_7696",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:WindowModes.label",
+   "args": [],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-sound-posting",
+   "file": "class_727.as",
+   "function": "s/method/method_632",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:MusicPacks.sound",
+   "args": [
+    "param1",
+    "param3"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-tick-clock",
+   "file": "GameCore.as",
+   "function": "i/method/tick",
+   "where": "after",
+   "anchor": "^setlocal1$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "call": "bh.platform:ReplayExport.clock",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "sets_param": 1
+  },
+  {
+   "id": "fix-room-header-unknown-region",
+   "file": "class_526.as",
+   "function": "i/method/method_3883",
+   "mode": "bytecode",
+   "where": "after",
+   "anchor": "\"{{method_8607}}\"\\), 1$",
+   "maxstack": 3,
+   "note": "if(_loc5_ == \"UI_Unknown\") { _loc5_ = \"UI_SelectCharacter_Room\"; _loc6_ = null; } (on the value before it is stored in _loc5_)",
+   "code": [
+    "dup",
+    "pushstring \"UI_Unknown\"",
+    "ifne @keep",
+    "pop",
+    "pushstring \"UI_SelectCharacter_Room\"",
+    "pushnull",
+    "setlocal 6",
+    "@keep:"
+   ]
+  },
+  {
+   "id": "hook-moniker-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_7157",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'Moniker'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-stance-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_1212",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'Stance'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-emitter-group-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_2378",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'EmitterGroup'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-universal-color-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_921",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'UniversalColor'",
+    "param2"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-color-owned-count",
+   "file": "class_719.as",
+   "function": "i/method/method_3692",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Unlocks.colourCount",
+   "args": [
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-random-color-owned",
+   "file": "class_719.as",
+   "function": "i/method/method_914",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "itemOwned",
+   "args": [
+    "'RandomColor'",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-sim-random-in",
+   "file": "GameCore.as",
+   "function": "i/method/method_971",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform.net:SimRandom.frameStart",
+   "args": []
+  },
+  {
+   "id": "hook-sim-random-out",
+   "file": "GameCore.as",
+   "function": "i/method/method_4396",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform.net:SimRandom.frameEnd",
+   "args": []
+  },
+  {
+   "id": "hook-sim-random-saved",
+   "file": "class_226.as",
+   "function": "i/method/method_5651",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform.net:SimRandom.saved",
+   "args": [
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-sim-random-restored",
+   "file": "class_226.as",
+   "function": "i/method/method_2765",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform.net:SimRandom.restored",
+   "args": [
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-sim-random-brain-in",
+   "file": "class_123.as",
+   "function": "i/method/method_2938",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform.net:SimRandom.brainIn",
+   "args": []
+  },
+  {
+   "id": "hook-sim-random-brain-out",
+   "file": "class_123.as",
+   "function": "i/method/method_2938",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform.net:SimRandom.brainOut",
+   "args": []
+  },
+  {
+   "id": "hook-checkpoint-extras-saved",
+   "file": "class_361.as",
+   "function": "i/method/class_481",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform.net:CheckpointExtras.saved",
+   "args": [
+    "this",
+    "param2"
+   ]
+  },
+  {
+   "id": "hook-checkpoint-extras-restored",
+   "file": "class_362.as",
+   "function": "i/method/method_8615",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform.net:CheckpointExtras.restored",
+   "args": [
+    "this",
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-url-opening",
+   "file": "GameCore.as",
+   "function": "s/method/method_1744",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "urlOpening",
+   "args": [
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "void"
+  },
+  {
+   "id": "fix-multikeyboard-read-early",
+   "file": "GameCore.as",
+   "function": "i/method/method_513",
+   "mode": "bytecode",
+   "where": "before",
+   "anchor": "^findproperty\\s+.*\"{{tick}}\"\\)$",
+   "maxstack": 2,
+   "note": "if(Main.useMultiKeyboard && RawKeyboards.early) method_4674()",
+   "code": [
+    "getlex QName(PackageNamespace(\"\"), \"Main\")",
+    "getproperty QName(PackageNamespace(\"\"), \"{{useMultiKeyboard}}\")",
+    "iffalse @skip",
+    "getlex QName(PackageNamespace(\"bh.platform\"), \"RawKeyboards\")",
+    "getproperty QName(PackageNamespace(\"\"), \"early\")",
+    "iffalse @skip",
+    "getlocal0",
+    "callpropvoid QName(PackageNamespace(\"\"), \"{{method_4674}}\"), 0",
+    "@skip:"
+   ]
+  },
+  {
+   "id": "fix-multikeyboard-read-early-skip",
+   "file": "GameCore.as",
+   "function": "i/method/method_513",
+   "mode": "bytecode",
+   "where": "before",
+   "anchor": "^findproperty\\s+.*\"{{method_4674}}\"\\)$",
+   "maxstack": 2,
+   "end_anchor": "^callpropvoid\\s+.*\"{{method_4674}}\"\\), 0$",
+   "note": "if(!RawKeyboards.early) method_4674()",
+   "code": [
+    "getlex QName(PackageNamespace(\"bh.platform\"), \"RawKeyboards\")",
+    "getproperty QName(PackageNamespace(\"\"), \"early\")",
+    "iftrue @end"
+   ]
+  },
+  {
+   "id": "fix-carry-hit-priority",
+   "file": "class_79.as",
+   "function": "i/method/method_7724",
+   "mode": "bytecode",
+   "where": "before",
+   "anchor": "\"{{var_8950}}\"\\)$",
+   "occurrence": 1,
+   "offset": -3,
+   "maxstack": 3,
+   "end_anchor": "^initproperty\\s+.*\"{{var_6650}}\"\\)$",
+   "end_occurrence": 2,
+   "note": "if(HitPriority.related(_loc5_, _loc14_)) before the var_8950 if/else",
+   "code": [
+    "getlex QName(PackageNamespace(\"bh.platform\"), \"HitPriority\")",
+    "getlocal 5",
+    "getlocal 14",
+    "callproperty QName(PackageNamespace(\"\"), \"related\"), 2",
+    "iffalse @end"
+   ]
+  },
+  {
+   "id": "fix-guild-notice-unfiltered",
+   "file": "class_64.as",
+   "function": "i/method/method_5582",
+   "mode": "bytecode",
+   "where": "after",
+   "anchor": "\"{{method_3025}}\"\\), 2$",
+   "maxstack": 4,
+   "note": "var_11065 = GuildTexts.notice(class_406.method_3025(param1,false), param1): the escaped notice as written",
+   "code": [
+    "getlex QName(PackageNamespace(\"bh.platform\"), \"GuildTexts\")",
+    "swap",
+    "getlocal1",
+    "callproperty QName(PackageNamespace(\"\"), \"notice\"), 2"
+   ]
+  },
+  {
+   "id": "hook-lobby-podium-spread",
+   "file": "class_666.as",
+   "function": "i/method/method_414",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:TourneyLobby.spread",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-lobby-room-size",
+   "file": "class_104.as",
+   "function": "i/method/method_6197",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:TourneyLobby.roomSize",
+   "args": [
+    "this"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-training-keys-online-f5",
+   "file": "GameCore.as",
+   "function": "i/method/method_2575",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:OnlineTraining.refusesKey",
+   "args": [
+    "this",
+    "'F5'",
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-training-keys-online-f6",
+   "file": "GameCore.as",
+   "function": "i/method/method_2332",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:OnlineTraining.refusesKey",
+   "args": [
+    "this",
+    "'F6'",
+    "param1"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-training-keys-online-f7",
+   "file": "GameCore.as",
+   "function": "i/method/method_3154",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:OnlineTraining.refusesKey",
+   "args": [
+    "this",
+    "'F7'"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-training-menu-pausing",
+   "file": "class_551.as",
+   "function": "i/method/method_2827",
+   "where": "after",
+   "anchor": "^callpropvoid .*\"{{method_4489}}\"",
+   "mode": "bytecode",
+   "call": "bh.platform:OnlineTraining.menuPaused",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-training-apply-online",
+   "file": "class_551.as",
+   "function": "i/method/method_8652",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:OnlineTraining.closing",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-training-menu-look-online",
+   "file": "class_551.as",
+   "function": "i/method/method_2827",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:OnlineTraining.menuOpened",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-training-bot",
+   "file": "class_551.as",
+   "function": "i/method/method_6112",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:TrainingModes.trainingBot",
+   "args": [
+    "this"
+   ],
+   "returns": "nonzero"
+  },
+  {
+   "id": "hook-match-preview-shown",
+   "file": "GameCore.as",
+   "function": "i/method/method_4157",
+   "where": "after",
+   "anchor": "^callpropvoid\\s+QName\\(PackageNamespace\\(\"\"\\), \"_-84x\"\\), 1$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "hook": "matchPreviewShown",
+   "args": [
+    "this",
+    "local7"
+   ]
+  },
+  {
+   "id": "hook-p2p-cosmetics",
+   "file": "GameCore.as",
+   "function": "i/method/method_4157",
+   "where": "after",
+   "anchor": "^callpropvoid\\s+QName\\(PackageNamespace\\(\"\"\\), \"_-25c\"\\), 1$",
+   "occurrence": 1,
+   "mode": "bytecode",
+   "call": "bh.platform.net:Cosmetics.filled",
+   "args": [
+    "local19",
+    "local20"
+   ]
+  },
+  {
+   "id": "fix-p2p-player-names-legend",
+   "file": "class_123.as",
+   "function": "i/method/method_1870",
+   "mode": "bytecode",
+   "where": "before",
+   "anchor": "\"{{var_3595}}\"\\)$",
+   "occurrence": 1,
+   "offset": -3,
+   "maxstack": 2,
+   "end_anchor": "^initproperty\\s+.*\"{{var_14792}}\"\\)$",
+   "note": "if(!P2PSession.active) before the renaming if",
+   "code": [
+    "getlex QName(PackageNamespace(\"bh.platform.net\"), \"P2PSession\")",
+    "getproperty QName(PackageNamespace(\"\"), \"active\")",
+    "iftrue @end"
+   ]
+  },
+  {
+   "id": "fix-p2p-player-names-weapon",
+   "file": "class_123.as",
+   "function": "i/method/method_1355",
+   "mode": "bytecode",
+   "where": "after",
+   "anchor": "^setlocal\\s+11$",
+   "occurrence": 2,
+   "maxstack": 2,
+   "end_anchor": "^initproperty\\s+.*\"{{var_14792}}\"\\)$",
+   "note": "if(!P2PSession.active) before the renaming if",
+   "code": [
+    "getlex QName(PackageNamespace(\"bh.platform.net\"), \"P2PSession\")",
+    "getproperty QName(PackageNamespace(\"\"), \"active\")",
+    "iftrue @end"
+   ]
+  },
+  {
+   "id": "fix-controller-removed-safe",
+   "file": "GameCore.as",
+   "function": "i/method/method_287",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:Controllers.removing",
+   "args": [
+    "param1"
+   ]
+  },
+  {
+   "id": "hook-mod-items-entry-17",
+   "file": "LinkUpdater.as",
+   "function": "i/method/method_6878",
+   "where": "after",
+   "anchor": "^setlocal\\s+23$",
+   "mode": "bytecode",
+   "call": "bh.platform.net:ModItems.id",
+   "args": [
+    "'ColorSchemeTypes'",
+    "local5",
+    "local17",
+    "local14"
+   ],
+   "sets_param": 17
+  },
+  {
+   "id": "hook-mod-items-entry-18",
+   "file": "LinkUpdater.as",
+   "function": "i/method/method_6878",
+   "where": "after",
+   "anchor": "^setlocal\\s+23$",
+   "mode": "bytecode",
+   "call": "bh.platform.net:ModItems.id",
+   "args": [
+    "'SpawnBotTypes'",
+    "local5",
+    "local18",
+    "local14"
+   ],
+   "sets_param": 18
+  },
+  {
+   "id": "hook-mod-items-entry-19",
+   "file": "LinkUpdater.as",
+   "function": "i/method/method_6878",
+   "where": "after",
+   "anchor": "^setlocal\\s+23$",
+   "mode": "bytecode",
+   "call": "bh.platform.net:ModItems.id",
+   "args": [
+    "'CompanionTypes'",
+    "local5",
+    "local19",
+    "local14"
+   ],
+   "sets_param": 19
+  },
+  {
+   "id": "hook-mod-items-entry-20",
+   "file": "LinkUpdater.as",
+   "function": "i/method/method_6878",
+   "where": "after",
+   "anchor": "^setlocal\\s+23$",
+   "mode": "bytecode",
+   "call": "bh.platform.net:ModItems.id",
+   "args": [
+    "'TrailEffectTypes'",
+    "local5",
+    "local20",
+    "local14"
+   ],
+   "sets_param": 20
+  },
+  {
+   "id": "hook-mod-items-entry-21",
+   "file": "LinkUpdater.as",
+   "function": "i/method/method_6878",
+   "where": "after",
+   "anchor": "^setlocal\\s+23$",
+   "mode": "bytecode",
+   "call": "bh.platform.net:ModItems.id",
+   "args": [
+    "'avatarTypes'",
+    "local5",
+    "local21",
+    "local14"
+   ],
+   "sets_param": 21
+  },
+  {
+   "id": "hook-mod-items-entry-22",
+   "file": "LinkUpdater.as",
+   "function": "i/method/method_6878",
+   "where": "after",
+   "anchor": "^setlocal\\s+23$",
+   "mode": "bytecode",
+   "call": "bh.platform.net:ModItems.id",
+   "args": [
+    "'PodiumTypes'",
+    "local5",
+    "local22",
+    "local14"
+   ],
+   "sets_param": 22
+  },
+  {
+   "id": "hook-mod-items-entry-23",
+   "file": "LinkUpdater.as",
+   "function": "i/method/method_6878",
+   "where": "after",
+   "anchor": "^setlocal\\s+23$",
+   "mode": "bytecode",
+   "call": "bh.platform.net:ModItems.id",
+   "args": [
+    "'MonikerTypes'",
+    "local5",
+    "local23",
+    "local14"
+   ],
+   "sets_param": 23
+  },
+  {
+   "id": "hook-mod-items-skin",
+   "file": "LinkUpdater.as",
+   "function": "i/method/method_6878",
+   "where": "after",
+   "anchor": "^setlocal\\s+38$",
+   "occurrence": 2,
+   "mode": "bytecode",
+   "call": "bh.platform.net:ModItems.id",
+   "args": [
+    "'costumeTypes'",
+    "local5",
+    "local34",
+    "local14"
+   ],
+   "sets_param": 34
+  },
+  {
+   "id": "hook-mod-items-weapons",
+   "file": "LinkUpdater.as",
+   "function": "i/method/method_6878",
+   "where": "after",
+   "anchor": "^setlocal\\s+38$",
+   "occurrence": 2,
+   "mode": "bytecode",
+   "call": "bh.platform.net:ModItems.weapons",
+   "args": [
+    "local5",
+    "local36",
+    "local14"
+   ],
+   "sets_param": 36
+  },
+  {
+   "id": "hook-profile-menu-entry",
+   "file": "class_199.as",
+   "function": "i/method/method_5175",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:ProfileMenu.addEntry",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-profile-menu-view",
+   "file": "class_199.as",
+   "function": "i/method/method_1852",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:ProfileMenu.view",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-profile-clan-entry",
+   "file": "class_609.as",
+   "function": "i/method/method_5175",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:ProfileMenu.addEntry",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-profile-clan-view",
+   "file": "class_609.as",
+   "function": "i/method/method_1852",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:ProfileMenu.view",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-profile-lobby-entry",
+   "file": "class_201.as",
+   "function": "i/method/method_619",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:ProfileMenu.lobbyEntry",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-profile-podium-entry",
+   "file": "class_525.as",
+   "function": "i/method/method_4791",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:ProfileMenu.podiumEntries",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-replays-input",
+   "file": "class_622.as",
+   "function": "i/method/HandleInput",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "replaysInput",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
+   "id": "hook-replays-rows",
+   "file": "class_622.as",
+   "function": "i/method/method_4943",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "replaysRowsDrawing",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-replay-mode-missing",
+   "file": "GameCore.as",
+   "function": "i/method/method_2789",
+   "where": "after",
+   "anchor": "^setlocal\\s+4$",
+   "mode": "bytecode",
+   "call": "bh.platform:ReplayIndex.refuseReplay",
+   "args": [
+    "local3",
+    "local4"
+   ],
+   "returns": "skip"
+  },
+  {
+   "id": "hook-replay-saved",
+   "file": "class_321.as",
+   "function": "i/method/method_395",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:ReplayKeep.saved",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-notice-rows",
+   "file": "class_202.as",
+   "function": "i/method/method_4811",
+   "where": "before",
+   "anchor": "^returnvalue$",
+   "occurrence": 2,
+   "mode": "bytecode",
+   "call": "bh.platform:Notices.noticeRows",
+   "args": [
+    "local1"
+   ]
+  },
+  {
+   "id": "hook-notice-title",
+   "file": "class_202.as",
+   "function": "i/method/method_4407",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:Notices.noticeTitle",
+   "args": [
+    "this"
+   ]
+  },
+  {
+   "id": "hook-notice-buttons",
+   "file": "class_202.as",
+   "function": "i/method/method_619",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:Notices.noticeButtons",
+   "args": [
+    "this"
+   ]
+  }
+ ]
+}

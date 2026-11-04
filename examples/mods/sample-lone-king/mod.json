@@ -1,0 +1,42 @@
+{
+  "id": "sample-lone-king",
+  "name": "Sample code-mode (Lone King)",
+  "version": "1.0",
+  "author": "bh-decomp",
+  "description": "King of the Hill where the hill only scores while one team holds it alone. Needs the loneking platform mod.",
+  "strings": {
+    "English": {
+      "BHLoneKing_Name": "Lone King",
+      "BHLoneKing_Desc": "Hold the lit platform alone to score. A contested hill scores nothing. The hill moves every 15 seconds.",
+      "BHLoneKing_Default": "Lone King"
+    }
+  },
+  "tables": {
+    "ScoringTypes": [
+      {
+        "copy": "COLORPLATFORMS",
+        "set": {
+          "@ScoringName": "BHLONEKING",
+          "@Enabled": "True",
+          "ScoringID": "@id",
+          "DisplayOrder": "211",
+          "DisplayNameKey": "BHLoneKing_Name",
+          "DescriptionKey": "BHLoneKing_Desc",
+          "DefaultGameModeType": "BHLoneKing",
+          "IconName": "a_ScoringIcon_SHOWDOWN"
+        }
+      }
+    ],
+    "GameModeTypes": [
+      {
+        "copy": "DefaultColorPlatforms",
+        "set": {
+          "@GameModeName": "BHLoneKing",
+          "GameModeID": "@id",
+          "DisplayNameKey": "BHLoneKing_Default",
+          "ScoringType": "BHLONEKING"
+        }
+      }
+    ]
+  }
+}

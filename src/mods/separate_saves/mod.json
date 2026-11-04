@@ -1,0 +1,142 @@
+{
+  "name": "separate_saves",
+  "description": "Keeps Bifrost's settings, profile and downloaded files apart from the official game's.",
+  "block": "@document",
+  "patches": [
+    {
+      "class": "block-11/_-rm.class.asasm",
+      "method": "trait:_-v51",
+      "after": "^pushstring\\s+\"sbSavedGameData\"$",
+      "insert": [
+        "pop",
+        "pushstring \"bifrost_sbSavedGameData\""
+      ]
+    },
+    {
+      "class": "block-11/_-k4e_.class.asasm",
+      "method": "trait:Init",
+      "after": "^pushstring\\s+\"bhProfileData\"$",
+      "insert": [
+        "pop",
+        "pushstring \"bifrost_bhProfileData\""
+      ]
+    },
+    {
+      "class": "block-11/_-H2U.class.asasm",
+      "method": "trait:_-g5A",
+      "after": "^pushstring\\s+\"bhKeybinds\"$",
+      "insert": [
+        "pop",
+        "pushstring \"bifrost_bhKeybinds\""
+      ]
+    },
+    {
+      "class": "block-11/_-H2U.class.asasm",
+      "method": "trait:_-R1e",
+      "after": "^pushstring\\s+\"bhKeybinds\"$",
+      "insert": [
+        "pop",
+        "pushstring \"bifrost_bhKeybinds\""
+      ]
+    },
+    {
+      "class": "block-11/_-H2U.class.asasm",
+      "method": "trait:_-x2F",
+      "after": "^pushstring\\s+\"sbSavedData\"$",
+      "insert": [
+        "pop",
+        "pushstring \"bifrost_sbSavedData\""
+      ]
+    },
+    {
+      "class": "block-11/_-31h.class.asasm",
+      "method": "trait:_-A1Y",
+      "after": "^getproperty\\s+QName\\(PackageNamespace\\(\"\"(?:, \"#\\d+\")?\\), \"applicationStorageDirectory\"\\)$",
+      "insert": [
+        "pushstring \"Bifrost\"",
+        "callproperty QName(PackageNamespace(\"\"), \"resolvePath\"), 1"
+      ],
+      "maxstack": 5
+    },
+    {
+      "class": "block-11/_-G2d.class.asasm",
+      "method": "trait:_-B6n",
+      "after": "^getproperty\\s+QName\\(PackageNamespace\\(\"\"(?:, \"#\\d+\")?\\), \"applicationStorageDirectory\"\\)$",
+      "insert": [
+        "pushstring \"Bifrost\"",
+        "callproperty QName(PackageNamespace(\"\"), \"resolvePath\"), 1"
+      ],
+      "maxstack": 6
+    },
+    {
+      "class": "block-11/_-G2d.class.asasm",
+      "method": "trait:_-EN",
+      "after": "^getproperty\\s+QName\\(PackageNamespace\\(\"\"(?:, \"#\\d+\")?\\), \"applicationStorageDirectory\"\\)$",
+      "insert": [
+        "pushstring \"Bifrost\"",
+        "callproperty QName(PackageNamespace(\"\"), \"resolvePath\"), 1"
+      ],
+      "maxstack": 4
+    },
+    {
+      "class": "block-11/_-G2d.class.asasm",
+      "method": "trait:_-V4s",
+      "after": "^getproperty\\s+QName\\(PackageNamespace\\(\"\"(?:, \"#\\d+\")?\\), \"applicationStorageDirectory\"\\)$",
+      "insert": [
+        "pushstring \"Bifrost\"",
+        "callproperty QName(PackageNamespace(\"\"), \"resolvePath\"), 1"
+      ],
+      "maxstack": 5
+    },
+    {
+      "class": "block-11/_-G2d.class.asasm",
+      "method": "trait:_-T4a",
+      "after": "^getproperty\\s+QName\\(PackageNamespace\\(\"\"(?:, \"#\\d+\")?\\), \"applicationStorageDirectory\"\\)$",
+      "insert": [
+        "pushstring \"Bifrost\"",
+        "callproperty QName(PackageNamespace(\"\"), \"resolvePath\"), 1"
+      ],
+      "maxstack": 4
+    },
+    {
+      "class": "block-11/_-G2d.class.asasm",
+      "method": "trait:_-Zp",
+      "after": "^getproperty\\s+QName\\(PackageNamespace\\(\"\"(?:, \"#\\d+\")?\\), \"applicationStorageDirectory\"\\)$",
+      "insert": [
+        "pushstring \"Bifrost\"",
+        "callproperty QName(PackageNamespace(\"\"), \"resolvePath\"), 1"
+      ],
+      "maxstack": 3
+    },
+    {
+      "class": "block-11/_-H2U.class.asasm",
+      "method": "trait:_-C3j",
+      "after": "^getproperty\\s+QName\\(PackageNamespace\\(\"\"(?:, \"#\\d+\")?\\), \"applicationStorageDirectory\"\\)$",
+      "insert": [
+        "pushstring \"Bifrost\"",
+        "callproperty QName(PackageNamespace(\"\"), \"resolvePath\"), 1"
+      ],
+      "maxstack": 4
+    },
+    {
+      "class": "block-11/_-H2U.class.asasm",
+      "method": "trait:_-K4N",
+      "after": "^getproperty\\s+QName\\(PackageNamespace\\(\"\"(?:, \"#\\d+\")?\\), \"applicationStorageDirectory\"\\)$",
+      "insert": [
+        "pushstring \"Bifrost\"",
+        "callproperty QName(PackageNamespace(\"\"), \"resolvePath\"), 1"
+      ],
+      "maxstack": 4
+    },
+    {
+      "class": "block-11/_-h3q.class.asasm",
+      "method": "trait:_-j4b",
+      "after": "^getproperty\\s+QName\\(PackageNamespace\\(\"\"(?:, \"#\\d+\")?\\), \"applicationStorageDirectory\"\\)$",
+      "insert": [
+        "pushstring \"Bifrost\"",
+        "callproperty QName(PackageNamespace(\"\"), \"resolvePath\"), 1"
+      ],
+      "maxstack": 4
+    }
+  ]
+}

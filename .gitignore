@@ -1,0 +1,18 @@
+/data/
+/versions/
+/build/
+/releases/
+/reports/
+/bh pkg/
+/.tools/
+/client/raw/
+/client/bytecode/
+/client/assets/
+/src/asasm/
+/src/as3/*/
+/tools/relay/bin/
+/tools/relay/obj/
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store

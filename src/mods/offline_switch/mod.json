@@ -1,0 +1,51 @@
+{
+  "name": "offline_switch",
+  "description": "Keeps the game offline unless a private server is set, and turns off its HTTP calls.",
+  "block": "@document",
+  "patches": [
+    {
+      "class": "block-11/_-rm.class.asasm",
+      "method": "trait:_-Q28",
+      "after": "^callpropvoid\\s+QName\\(PackageNamespace\\(\"\"(, \"#\\d+\")?\\), \"_-v51\"\\), 0$",
+      "insert": [
+        "getlex QName(PackageNamespace(\"\"), \"_-rm\")",
+        "getlex QName(PackageNamespace(\"\"), \"_-rm\")",
+        "getproperty QName(PackageNamespace(\"\"), \"_-12g\")",
+        "pushnull",
+        "equals",
+        "initproperty QName(PackageNamespace(\"\"), \"_-kz\")",
+        "getlex QName(PackageNamespace(\"\"), \"_-W57\")",
+        "pushtrue",
+        "setproperty QName(PackageNamespace(\"\"), \"_-b1g\")"
+      ],
+      "maxstack": 3
+    },
+    {
+      "class": "block-11/_-H2U.class.asasm",
+      "method": "trait:_-56d",
+      "after": "^pushscope$",
+      "insert": [
+        "getlex QName(PackageNamespace(\"\"), \"_-rm\")",
+        "getproperty QName(PackageNamespace(\"\"), \"_-kz\")",
+        "iffalse L90001",
+        "returnvoid",
+        "L90001:"
+      ],
+      "maxstack": 1
+    },
+    {
+      "class": "block-11/_-12d.class.asasm",
+      "method": "trait:_-B3y",
+      "after": "^pushscope$",
+      "insert": [
+        "getlex QName(PackageNamespace(\"\"), \"_-W57\")",
+        "getproperty QName(PackageNamespace(\"\"), \"_-b1g\")",
+        "iffalse L90002",
+        "pushfalse",
+        "returnvalue",
+        "L90002:"
+      ],
+      "maxstack": 1
+    }
+  ]
+}

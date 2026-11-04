@@ -1,0 +1,78 @@
+{
+  "id": "sample-legend",
+  "name": "Sample legend",
+  "version": "1.0",
+  "description": "Adds Sample Viking, a new legend based on Bödvar with its own stats, stances, weapons and green default skin.",
+  "strings": {
+    "English": {
+      "BHSampleHero_Default_DisplayName": "Sample Viking"
+    }
+  },
+  "tables": {
+    "HeroTypes": [
+      {
+        "copy": "Viking",
+        "set": {
+          "@HeroName": "BHSampleHero",
+          "HeroID": "@id",
+          "ReleaseOrderID": "@id",
+          "HeroDisplayName": "SAMPLE VIKING (MOD)",
+          "BotDisplayName": "Sample Bot",
+          "BioName": "Sample Viking",
+          "CostumeName": "BHSampleHeroDefault",
+          "Strength": "7",
+          "Dexterity": "5",
+          "Weight": "6",
+          "Speed": "4"
+        }
+      }
+    ],
+    "costumeTypes": [
+      {
+        "copy": "Viking",
+        "set": {
+          "CostumeName": "BHSampleHeroDefault",
+          "CostumeID": "@id",
+          "CostumeIndex": "0",
+          "OwnerHero": "BHSampleHero",
+          "DisplayNameKey": "BHSampleHero_Default_DisplayName",
+          "Body1VL_Define": "0xC8F5B4",
+          "Body1Lt_Define": "0x7FD35C",
+          "Body1_Define": "0x4C9A2A",
+          "Body1Dk_Define": "0x2E6B17",
+          "WeaponSet": "BHSampleHero"
+        }
+      }
+    ],
+    "RuneTypes": [
+      "<RuneType><HeroName>BHSampleHero</HeroName><RuneIndex>0</RuneIndex><Strength>7</Strength><Dexterity>5</Dexterity><Weight>6</Weight><Speed>4</Speed><IconName>a_StanceIcon_Base</IconName><IconFileName>UI_Icons</IconFileName></RuneType>",
+      "<RuneType><RuneIndex>1</RuneIndex><Strength>6</Strength><Dexterity>5</Dexterity><Weight>6</Weight><Speed>5</Speed><IconName>a_StanceIcon_Speed</IconName><IconFileName>UI_Icons</IconFileName></RuneType>",
+      "<RuneType><RuneIndex>2</RuneIndex><Strength>7</Strength><Dexterity>5</Dexterity><Weight>7</Weight><Speed>3</Speed><IconName>a_StanceIcon_Weight</IconName><IconFileName>UI_Icons</IconFileName></RuneType>",
+      "<RuneType><RuneIndex>3</RuneIndex><Strength>7</Strength><Dexterity>6</Dexterity><Weight>5</Weight><Speed>4</Speed><IconName>a_StanceIcon_Dexterity</IconName><IconFileName>UI_Icons</IconFileName></RuneType>",
+      "<RuneType><RuneIndex>4</RuneIndex><Strength>8</Strength><Dexterity>4</Dexterity><Weight>6</Weight><Speed>4</Speed><IconName>a_StanceIcon_Strength</IconName><IconFileName>UI_Icons</IconFileName></RuneType>",
+      "<RuneType><RuneIndex>5</RuneIndex><Strength>6</Strength><Dexterity>4</Dexterity><Weight>6</Weight><Speed>6</Speed><IconName>a_StanceIcon_SuperSpeed</IconName><IconFileName>UI_Icons</IconFileName></RuneType>",
+      "<RuneType><RuneIndex>6</RuneIndex><Strength>6</Strength><Dexterity>5</Dexterity><Weight>8</Weight><Speed>3</Speed><IconName>a_StanceIcon_SuperWeight</IconName><IconFileName>UI_Icons</IconFileName></RuneType>",
+      "<RuneType><RuneIndex>7</RuneIndex><Strength>7</Strength><Dexterity>7</Dexterity><Weight>5</Weight><Speed>3</Speed><IconName>a_StanceIcon_SuperDexterity</IconName><IconFileName>UI_Icons</IconFileName></RuneType>",
+      "<RuneType><RuneIndex>8</RuneIndex><Strength>9</Strength><Dexterity>4</Dexterity><Weight>5</Weight><Speed>4</Speed><IconName>a_StanceIcon_SuperStrength</IconName><IconFileName>UI_Icons</IconFileName></RuneType>",
+      "<RuneType><RuneIndex>9</RuneIndex><Strength>5</Strength><Dexterity>3</Dexterity><Weight>4</Weight><Speed>2</Speed><IconName>a_StanceIcon_Challenge</IconName><IconFileName>UI_Icons</IconFileName></RuneType>"
+    ],
+    "weaponSkinTypes": [
+      {
+        "copy": "HammerViking",
+        "set": {
+          "WeaponSkinName": "HammerBHSampleHero",
+          "WeaponSkinID": "@id",
+          "OwnerHero": "BHSampleHero"
+        }
+      },
+      {
+        "copy": "SwordViking",
+        "set": {
+          "WeaponSkinName": "SwordBHSampleHero",
+          "WeaponSkinID": "@id",
+          "OwnerHero": "BHSampleHero"
+        }
+      }
+    ]
+  }
+}

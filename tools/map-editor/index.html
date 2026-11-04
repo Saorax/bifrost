@@ -1,0 +1,1246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brawlhalla Map Editor</title>
+<script src="schema.js"></script>
+<script src="help.js"></script>
+<script src="navgen.js"></script>
+<style>
+  :root { --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --line:#2b313d; --text:#e8ebf1; --muted:#98a2b3; --accent:#4cc2b6;
+          --accent-ink:#06201d; --warn:#fbbf24; --bad:#f87171; --sel:#ff4fd8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; height:100vh; display:flex; flex-direction:column; }
+  button, label.file { background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 11px; cursor:pointer; font:inherit; white-space:nowrap; }
+  button:hover:not(:disabled), label.file:hover { border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:default; }
+  button.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:650; }
+  button.ghost { background:transparent; }
+  label.file input { display:none; }
+  code { background:#0b0d11; padding:1px 4px; border-radius:4px; font-size:12px; }
+  header { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px 12px; background:var(--panel); border-bottom:1px solid var(--line); }
+  header h1 { font-size:15px; margin:0 10px 0 0; letter-spacing:.01em; }
+  header h1 small { color:var(--muted); font-weight:400; margin-left:6px; }
+  .sep { width:1px; align-self:stretch; background:var(--line); margin:0 4px; }
+  #status { color:var(--muted); font-size:12.5px; flex:1 1 200px; min-width:0; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  main { flex:1; display:flex; min-height:0; }
+  #stage { flex:1; position:relative; min-width:0; }
+  svg#view { width:100%; height:100%; display:block; background:#0b0d11; touch-action:none; }
+  #tip { position:absolute; pointer-events:none; background:#0b0d11ee; border:1px solid var(--line); border-radius:8px; padding:6px 9px; font-size:12px; max-width:280px; display:none; z-index:5; }
+  #tip b { display:block; font-size:13px; }
+  #tip span { color:var(--muted); }
+  #coords { position:absolute; left:10px; bottom:8px; font:12px ui-monospace, monospace; color:var(--muted); pointer-events:none; }
+  #quick { position:absolute; left:10px; top:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; background:#0b0d11d9;
+    border:1px solid var(--line); border-radius:10px; padding:5px 9px; font-size:12.5px; color:var(--muted); z-index:3; }
+  #quick label { display:flex; align-items:center; gap:5px; cursor:pointer; }
+  #quick label + label { margin-left:8px; }
+  #quick input[type=range] { width:90px; }
+  .inmap { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .inmap span small { display:block; color:var(--muted); font-size:11.5px; }
+  #zoom { position:absolute; right:10px; bottom:10px; display:flex; gap:4px; }
+  #zoom button { width:34px; padding:6px 0; }
+  #welcome { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#0b0d11; z-index:4; padding:16px; }
+  #welcome.hidden { display:none; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:26px 28px; max-width:560px; width:100%; }
+  .card h2 { margin:0 0 6px; font-size:22px; }
+  .card p { color:var(--muted); margin:6px 0 18px; }
+  .choices { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
+  .choices > button, .choices > label.file { white-space:normal; }
+  .choices > * { display:flex; flex-direction:column; align-items:flex-start; gap:3px; padding:12px 14px; text-align:left; white-space:normal; }
+  .choices small { color:var(--muted); font-weight:400; font-size:12px; }
+  .choices .primary small { color:var(--accent-ink); opacity:.8; }
+  .drop-hint { margin-top:16px; border:1px dashed var(--line); border-radius:10px; padding:12px; color:var(--muted); font-size:13px; text-align:center; }
+  body.dragging #stage::after { content:"Drop LevelDesc_*.xml, mod.json or pictures to open them"; position:absolute; inset:10px; border:2px dashed var(--accent);
+    border-radius:14px; display:flex; align-items:center; justify-content:center; background:#0b0d11cc; font-size:18px; z-index:6; }
+  aside { width:370px; display:flex; flex-direction:column; background:var(--panel); border-left:1px solid var(--line); min-height:0; }
+  nav.tabs { display:flex; gap:1px; padding:6px 6px 0; border-bottom:1px solid var(--line); }
+  nav.tabs button { flex:1 1 auto; border:0; border-radius:8px 8px 0 0; background:transparent; color:var(--muted); padding:7px 6px; font-size:13.5px; }
+  nav.tabs button.on { background:var(--panel2); color:var(--text); }
+  nav.tabs .badge[hidden] { display:none; }
+  nav.tabs .badge { display:inline-block; min-width:17px; padding:0 5px; margin-left:4px; border-radius:9px; background:var(--warn); color:#1a1300; font-size:11px; font-weight:700; }
+  .panes { flex:1; overflow:auto; padding:10px 14px 18px; }
+  section[data-tab] { display:none; }
+  section[data-tab].on { display:block; }
+  h3 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:16px 0 6px; }
+  h3:first-child { margin-top:4px; }
+  .row { display:flex; gap:6px; align-items:center; margin:5px 0; }
+  .row > label { width:130px; flex:none; color:var(--muted); font-size:12.5px; overflow:hidden; text-overflow:ellipsis; }
+  .row > label.used { color:var(--text); }
+  input[type=text], select { background:#0b0d11; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:5px 7px; font:inherit; min-width:0; }
+  .row input[type=text], .row select.field { flex:1; }
+  input:focus, select:focus, button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .tools { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+  .hint { color:var(--muted); font-size:12.5px; margin:4px 0; }
+  .fieldhelp { color:var(--muted); font-size:11.5px; margin:-2px 0 8px 136px; }
+  details { border:1px solid var(--line); border-radius:10px; padding:4px 10px; margin:8px 0; background:#14171d; }
+  details summary { cursor:pointer; padding:5px 0; font-weight:600; }
+  details summary small { color:var(--muted); font-weight:400; }
+  .addgroup { margin:10px 0; }
+  .addgroup h4 { margin:0 0 4px; font-size:13px; }
+  .addgroup p { margin:0 0 6px; color:var(--muted); font-size:12px; }
+  .addlist { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .addlist button { text-align:left; white-space:normal; padding:7px 9px; font-size:13px; }
+  .addlist button small { display:block; color:var(--muted); font-size:11px; }
+  #layers { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; font-size:12.5px; color:var(--muted); }
+  #layers label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+  #layers i { display:inline-block; width:11px; height:11px; border-radius:3px; flex:none; }
+  #outline { width:100%; height:220px; font:12px ui-monospace, monospace; }
+  #palette { display:grid; grid-template-columns:repeat(auto-fill, minmax(70px, 1fr)); gap:6px; max-height:360px; overflow:auto; margin-top:6px; }
+  #palette figure { margin:0; cursor:pointer; background:#0b0d11; border:1px solid var(--line); border-radius:6px; padding:3px; text-align:center; }
+  #palette figure:hover { border-color:var(--accent); }
+  #palette img { width:100%; height:52px; object-fit:contain; display:block; }
+  #palette figcaption { font-size:10px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #inspector .what { color:var(--muted); font-size:12.5px; margin:2px 0 10px; }
+  #inspector .title { font-weight:650; font-size:15px; }
+  #inspector .title small { color:var(--muted); font-weight:400; font-size:12px; margin-left:6px; }
+  #warnings { list-style:none; padding:0; margin:0; }
+  #warnings li { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:7px 9px; margin:5px 0; border-radius:8px; background:#2a2211; color:var(--warn); font-size:12.5px; }
+  #warnings li.ok { background:#10261f; color:var(--accent); }
+  #warnings li button { flex:none; padding:4px 8px; font-size:12px; }
+  textarea { width:100%; height:140px; background:#0b0d11; color:var(--text); border:1px solid var(--line); border-radius:6px; font:12px ui-monospace, monospace; }
+  dialog { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:14px; max-width:640px; width:calc(100% - 32px); padding:22px 26px; }
+  dialog::backdrop { background:#000a; }
+  dialog h2 { margin:0 0 10px; }
+  dialog ol { padding-left:20px; } dialog li { margin:6px 0; }
+  dialog table { border-collapse:collapse; width:100%; font-size:13px; } dialog td { padding:4px 8px; border-top:1px solid var(--line); }
+  dialog td:first-child { white-space:nowrap; font-family:ui-monospace, monospace; color:var(--accent); }
+  @media (max-width: 860px) { main { flex-direction:column; } aside { width:auto; height:48vh; border-left:0; border-top:1px solid var(--line); } #status { display:none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Brawlhalla Map Editor<small id="map-title"></small></h1>
+  <button id="new-map" title="Start a new map with a floor, respawns and an item area">New map</button>
+  <label class="file" title="Open a LevelDesc_*.xml and its mod.json (you can pick both at once), or pictures">Open… <input type="file" id="open-files" accept=".xml,.json,image/png,image/jpeg" multiple></label>
+  <label class="file" title="Pick the mapArt folder in your Brawlhalla folder to see and place the game's art">Game art folder… <input type="file" id="open-art" webkitdirectory multiple></label>
+  <label class="file" title="PNG or JPG files of your own; they are exported with the mod">Own pictures… <input type="file" id="add-image" accept="image/png,image/jpeg" multiple></label>
+  <input type="file" id="open-level" accept=".xml" hidden><input type="file" id="open-mod" accept=".json" hidden>
+  <span class="sep"></span>
+  <button id="undo" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
+  <button id="redo" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
+  <span class="sep"></span>
+  <button id="help-open" class="ghost" title="How to use the editor">? Help</button>
+  <button class="primary" id="export" title="Download the map as one .zip to unzip into your Brawlhalla folder">Export mod</button>
+  <span id="status" role="status">Open a map, or start a new one.</span>
+</header>
+<main>
+  <div id="stage">
+    <svg id="view" xmlns="http://www.w3.org/2000/svg" aria-label="map view"></svg>
+    <div id="tip"></div>
+    <div id="coords"></div>
+    <div id="quick" aria-label="show on the map">
+      <label title="Show or hide the background picture"><input type="checkbox" id="q-background" checked> Background</label>
+      <label title="Show or hide the art pieces (platform pictures)"><input type="checkbox" id="q-assets" checked> Art</label>
+      <label title="Fade the art to see the floors through it">Fade <input type="range" id="q-fade" min="0" max="90" step="10" value="0"></label>
+    </div>
+    <div id="zoom"><button id="zoom-in" title="Zoom in">+</button><button id="zoom-out" title="Zoom out">−</button><button id="fit" title="Fit the whole map (F)">⤢</button></div>
+    <div id="welcome">
+      <div class="card">
+        <h2>Make a Brawlhalla map</h2>
+        <p>Draw floors, place respawns and art, set the kill box, let the editor make the bot paths, then export a mod that loads in your game.</p>
+        <div class="choices">
+          <button class="primary" id="w-new">New map<small>Starts with a floor, respawns and an item area.</small></button>
+          <label class="file" id="w-open">Open a map…<small>A LevelDesc_*.xml, and its mod.json if you have one.</small><input type="file" id="w-open-files" accept=".xml,.json" multiple></label>
+          <button id="w-help">How it works<small>Seven short steps and the shortcuts.</small></button>
+        </div>
+        <div class="drop-hint">Or drop files anywhere on this page.</div>
+      </div>
+    </div>
+  </div>
+  <aside>
+    <nav class="tabs" role="tablist">
+      <button data-tab="map" class="on">Map</button><button data-tab="add">Add</button><button data-tab="edit">Selected</button>
+      <button data-tab="art">Art</button><button data-tab="view">Layers</button><button data-tab="check">Check<span class="badge" id="check-count" hidden></span></button>
+    </nav>
+    <div class="panes">
+      <section data-tab="map" class="on">
+        <h3>This map</h3>
+        <div class="row"><label for="s-display" title="The name players see in the map list">Name in game</label><input type="text" id="s-display"></div>
+        <div class="row"><label for="s-name" title="The map's ID (LevelName): letters, digits and _ only, unique">Map ID</label><input type="text" id="s-name"></div>
+        <div class="row"><label for="s-modid" title="The mod's folder name (mods\<id>\): random, so two maps never clash">Mod ID</label><input type="text" id="s-modid" readonly></div>
+        <div class="row"><label for="s-assetdir" title="The mapArt folder its pictures come from (AssetDir)">Art folder</label><input type="text" id="s-assetdir"></div>
+        <div class="row"><label for="s-sets" title="Map lists (LevelSetTypes) this map is added to">Appears in</label><input type="text" id="s-sets"></div>
+        <div class="row"><label></label><select id="add-set" aria-label="add a map list"></select></div>
+        <div class="fieldhelp">Map lists: StandardAll and StandardFFA put it in Couch Party's map choice.</div>
+        <h3>Map settings</h3>
+        <div class="hint">Every setting the game reads for a map. Empty means the game's default; names in white are set. The kill box is also the red box on the map; drag its edges.</div>
+        <div id="level-fields"></div>
+      </section>
+      <section data-tab="add">
+        <h3>Most used</h3>
+        <div class="tools">
+          <button data-add="HardCollision" title="A solid line players stand on">Hard floor</button>
+          <button data-add="SoftCollision" title="A platform players can drop through">Soft platform</button>
+          <button data-add="Respawn" title="Where players appear">Respawn</button>
+          <button data-add="ItemSpawn" title="Where weapons drop">Item area</button>
+        </div>
+        <h3>Bots</h3>
+        <div class="tools"><button id="gen-nav" class="primary">Generate bot navigation</button><button id="undo-nav" disabled>Undo it</button></div>
+        <div class="hint" id="nav-hint">Makes the bot paths from your floors and platforms the way the game's own maps have them, replacing the old ones. Do it again after changing floors.</div>
+        <div id="addgroups"></div>
+        <details id="add-more"><summary>Any element <small>(the full list)</small></summary>
+          <div class="row"><select id="add-type" aria-label="element to add" style="flex:1"></select><button id="add-any">Add</button></div>
+          <div class="row"><select id="add-child" aria-label="element to add inside the selection" style="flex:1"></select><button id="add-inside">Add inside</button></div>
+          <div class="hint">"Add inside" puts a piece into the selected element, like a path stop into a moving platform.</div>
+        </details>
+      </section>
+      <section data-tab="edit">
+        <div id="inspector"></div>
+      </section>
+      <section data-tab="art">
+        <h3>In this map</h3>
+        <div id="inmap"></div>
+        <div class="hint">Removing art doesn't touch floors, spawns or bot paths. Ctrl+Z undoes it. To remove one piece, click it on the map and press Delete.</div>
+        <h3>Place art</h3>
+        <div class="hint" id="art-hint">To see the game's art, click <b>Game art folder…</b> at the top and pick the <code>mapArt</code> folder in your Brawlhalla folder. Nothing is uploaded. Choose what a click does: <b>place it as art</b> (with an art piece selected it swaps its picture, otherwise it's placed in the middle of the view) or <b>make it the background</b>. Any picture can be the background, yours too. Art is only looks; add a floor where players should stand.</div>
+        <div class="row"><label for="art-mode">Click a picture to</label><select id="art-mode" style="flex:1">
+          <option value="art">place it as art</option><option value="background">make it the background</option></select></div>
+        <div class="row"><label for="art-folder">Folder</label><select id="art-folder" style="flex:1"></select></div>
+        <div id="palette"></div>
+      </section>
+      <section data-tab="view">
+        <h3>Show</h3>
+        <div class="tools"><button id="layers-all">Show all</button><button id="layers-none">Hide all</button></div>
+        <div id="layers"></div>
+        <h3>Every element</h3>
+        <div class="hint">Click to select, even ones with no place on the map (sounds, waves).</div>
+        <select id="outline" size="12" aria-label="all elements"></select>
+      </section>
+      <section data-tab="check">
+        <h3>What the game needs</h3>
+        <ul id="warnings"></ul>
+        <h3>Export</h3>
+        <div class="hint"><b>Export mod</b> downloads one .zip. Unzip it into your Brawlhalla folder (it makes <code>mods\&lt;id&gt;\</code>), then press <b>F8</b> in the game's menus, or restart the game.</div>
+        <details><summary>The files <small>(mod.json and the LevelDesc)</small></summary>
+          <textarea id="out-mod" readonly aria-label="mod.json"></textarea>
+          <textarea id="out-level" readonly aria-label="LevelDesc"></textarea>
+        </details>
+      </section>
+    </div>
+  </aside>
+</main>
+<dialog id="help">
+  <h2>How it works</h2>
+  <ol id="help-steps"></ol>
+  <h3>Shortcuts</h3>
+  <table id="help-keys"></table>
+  <p class="hint">Hover anything on the map to see what it is. In <b>Selected</b>, hover a field's name to see what it does.</p>
+  <form method="dialog"><button class="primary">Got it</button></form>
+</dialog>
+<script>
+"use strict";
+const SNAP = 10;
+const LINE_TAGS = /Collision$/;
+const POINT_TAGS = new Set(["Respawn", "ItemInitSpawn", "TeamItemInitSpawn", "NavNode"]);
+const RECT_TAGS = new Set(["ItemSpawn", "CameraBounds", "SpawnBotBounds"]);
+const DEFAULTS = { sets:"StandardAll,StandardFFA", assetdir:"BattleHill" };
+
+const ROW_TEMPLATE = '<LevelType LevelName="" DevOnly="false" TestLevel="false"><DisplayName/><LevelID>@id</LevelID>' +
+  '<FileName>Level_Wacky.swf</FileName><AssetName>a_Level_battlehill</AssetName><CrateColorA>0x4CC2B6</CrateColorA>' +
+  '<CrateColorB>0x9FE6DE</CrateColorB><LeftKill>800</LeftKill><RightKill>800</RightKill><TopKill>1000</TopKill>' +
+  '<BottomKill>850</BottomKill><BGMusic>LevelShovelTheme</BGMusic><ThumbnailPNGFile>battlehill.jpg</ThumbnailPNGFile>' +
+  '<BotTint>0</BotTint><BotOffset>0xAFE1FC</BotOffset><BotFraction>0.25</BotFraction></LevelType>';
+const LEVEL = (window.MAP_SCHEMA && window.MAP_SCHEMA.level) || { rows: 0, fields: [], attributes: [], sets: [] };
+const HELP = window.MAP_HELP || { groups: [], elements: {}, attributes: {}, settings: {}, guide: [], shortcuts: [] };
+const nice = tag => (HELP.elements[tag] || {}).name || tag;
+const explain = tag => (HELP.elements[tag] || {}).text || "";
+const attrHelp = (tag, a) => HELP.attributes[tag + "." + a] || HELP.attributes[a] || "";
+const SETTING_GROUPS = [
+  ["Kill box", "Where players are knocked out.", ["LeftKill", "RightKill", "TopKill", "BottomKill", "HardLeftKill", "HardRightKill", "SoftTopKill"], true],
+  ["Look & music", "The map's art clip, thumbnail, music and colours.", ["FileName", "AssetName", "ThumbnailPNGFile", "BGMusic", "StreamerBGMusic",
+    "CrateColorA", "CrateColorB", "ColorExclusionList", "TeamColorOrder", "AvoidTeamColor", "ShadowTint", "MidgroundTint", "MidgroundOffset", "MidgroundFraction"]],
+  ["Camera", "How the camera behaves.", ["FixedCamera", "FixedWidth", "FixedWidthYOffset", "IsClimbMap"]],
+  ["Bots", "How bots play and look here.", ["AIStrictRecover", "AIPanicLine", "AIGroundLine", "BotTint", "BotOffset", "BotFraction"]],
+];
+const LAYERS = [
+  ["background", "Background", "#64748b"], ["cameraBounds", "Camera Bounds", "#60a5fa"], ["killBounds", "Kill Bounds", "#f43f5e"],
+  ["spawnBotBounds", "Spawn Bot Bounds", "#a78bfa"], ["hardCollision", "Hard Collision", "#f8fafc"],
+  ["softCollision", "Soft Collision", "#38bdf8"], ["noSlideCollision", "No-Slide Collision", "#f59e0b"],
+  ["bouncyCollision", "Bouncy Collision", "#34d399"], ["lavaCollision", "Lava Collision", "#fb7185"],
+  ["pressureCollision", "Pressure Plates", "#facc15"], ["gameModeCollision", "Game Mode Collision", "#e879f9"],
+  ["respawns", "Respawns", "#2dd4bf"], ["itemSpawns", "Item Spawns", "#22c55e"], ["initialItemSpawns", "Initial Item Spawns", "#4ade80"],
+  ["teamItemSpawns", "Team Item Spawns", "#14b8a6"], ["goals", "Goals", "#c084fc"], ["navigation", "Navigation", "#64748b"],
+  ["movingPlatforms", "Moving Platforms", "#f97316"], ["wavePaths", "Wave Paths", "#f472b6"], ["assets", "Map Assets", "#475569"],
+  ["other", "Other elements", "#ffa657"],
+];
+const LAYER = Object.fromEntries(LAYERS.map(([k, , c]) => [k, c]));
+function layerOf(el) {
+  const t = el.nodeName;
+  if (t === "Background" || t === "CameraBounds" || t === "SpawnBotBounds") return t[0].toLowerCase() + t.slice(1);
+  if (/PressurePlate/.test(t)) return "pressureCollision";
+  if (/^Bouncy/.test(t)) return "bouncyCollision";
+  if (/^Lava/.test(t)) return "lavaCollision";
+  if (/^GameMode/.test(t)) return "gameModeCollision";
+  if (/^NoSlide/.test(t)) return "noSlideCollision";
+  if (/^Soft/.test(t)) return "softCollision";
+  if (/Collision$/.test(t)) return "hardCollision";
+  const simple = { Respawn: "respawns", ItemSpawn: "itemSpawns", ItemInitSpawn: "initialItemSpawns", TeamItemInitSpawn: "teamItemSpawns",
+    Goal: "goals", NavNode: "navigation", KeyFrame: "movingPlatforms", Platform: "assets", Asset: "assets" };
+  if (simple[t]) return simple[t];
+  if (t === "Point" && el.parentNode.nodeName === "CustomPath") return "wavePaths";
+  return "other";
+}
+
+const SCHEMA = (window.MAP_SCHEMA && window.MAP_SCHEMA.elements) || {};
+const art = window.art = { files: new Map(), urls: new Map(), own: new Map() };   // lower-case path under mapArt -> File / URL
+
+const svg = document.getElementById("view");
+const editor = window.editor = { doc:null, selected:null, row:null, view:{x:-1500, y:-1500, w:3000, h:2000},
+  layers: Object.fromEntries(LAYERS.map(([k]) => [k, true])) };
+const $ = id => document.getElementById(id);
+const num = (el, a) => el.hasAttribute(a) ? parseFloat(el.getAttribute(a)) : undefined;
+const snap = v => Math.round(v / SNAP) * SNAP;
+const fmt = v => String(Math.round(v * 100) / 100);
+
+function setStatus(text) { $("status").textContent = text; }
+
+function load(text) {
+  const doc = new DOMParser().parseFromString(text.replace(/^﻿/, ""), "application/xml");
+  const root = doc.documentElement;
+  if (doc.getElementsByTagName("parsererror").length || root.nodeName !== "LevelDesc") {
+    setStatus("That file is not a LevelDesc (its root element must be <LevelDesc>).");
+    return false;
+  }
+  editor.doc = doc; editor.selected = null; editor.undo = []; editor.redo = []; undoButtons();
+  if (!editor.keepModId) editor.modId = randomId();      // every opened or new map gets its own mod ID
+  editor.keepModId = false;
+  retargetPictures();
+  $("s-name").value = root.getAttribute("LevelName") || "";
+  $("s-assetdir").value = root.getAttribute("AssetDir") || "";
+  if (!$("s-display").value) $("s-display").value = (root.getAttribute("LevelName") || "") + " (mod)";
+  if (!$("s-sets").value) $("s-sets").value = DEFAULTS.sets;
+  if (!editor.row) editor.row = rowFrom(ROW_TEMPLATE);
+  settings(); fit(); render(); palette();
+  setStatus("Opened " + root.getAttribute("LevelName") + ": " + root.children.length + " elements.");
+  return true;
+}
+
+function loadMod(text) {
+  let mod;
+  try { mod = JSON.parse(text.replace(/^﻿/, "")); } catch (e) { setStatus("mod.json is not valid JSON: " + e.message); return; }
+  const row = ((mod.tables || {}).LevelTypes || [])[0];
+  editor.baseRow = row || null;          // exported rows keep every field of this row
+  editor.row = (row && rowFrom(row)) || rowFrom(ROW_TEMPLATE);
+  $("s-display").value = getField("DisplayName") || $("s-display").value;
+  settings(); render();
+  const sets = ((mod.tables || {}).LevelSetTypes || []).map(r => (r.match(/LevelSetName="([^"]+)"/) || [])[1]).filter(Boolean);
+  if (sets.length) $("s-sets").value = sets.join(",");
+  const kept = adoptModId(mod.id);
+  setStatus(kept ? `Read the map settings; kept its mod ID ${mod.id}.`
+    : `Read the map settings. Its mod ID "${mod.id || ""}" isn't a random one, so it's now ${editor.modId}: exports go to mods\\${editor.modId}\\ (delete the old mods\\${mod.id || "…"}\\ folder).`);
+  checks();
+}
+
+const DEFAULT_BACKGROUND = '<Background AssetName="BG_SKCross.jpg" W="2048" H="1151"/>';
+function ensureBackground() {
+  const d = editor.doc.documentElement;
+  if (d.getElementsByTagName("Background").length) return false;
+  const bg = new DOMParser().parseFromString(DEFAULT_BACKGROUND, "application/xml").documentElement;
+  d.insertBefore(editor.doc.importNode(bg, true), d.firstElementChild);
+  return true;
+}
+function newMap() {
+  editor.baseRow = null; editor.row = rowFrom(ROW_TEMPLATE); editor.keepModId = false;
+  load('<LevelDesc AssetDir="BattleHill" LevelName="MyMap">' +
+    '<CameraBounds X="-2400" Y="-1800" W="4800" H="2700"/><SpawnBotBounds X="-800" Y="-1150" W="1600" H="900"/>' +
+    DEFAULT_BACKGROUND +
+    '<HardCollision X="-700" Y1="150" Y2="-400"/><HardCollision X1="-700" X2="700" Y="-400"/>' +
+    '<HardCollision X="700" Y1="-400" Y2="150"/><HardCollision X1="-700" X2="700" Y="150"/>' +
+    '<Respawn X="-300" Y="-800"/><Respawn X="300" Y="-800"/><ItemSpawn X="-200" Y="-800" W="400" H="150"/></LevelDesc>');
+  $("s-display").value = "My map (mod)";
+}
+
+function rowFrom(text) {
+  const d = new DOMParser().parseFromString(text, "application/xml");
+  return d.getElementsByTagName("parsererror").length || d.documentElement.nodeName !== "LevelType" ? null : d.documentElement;
+}
+const isAttr = name => LEVEL.attributes.some(a => a[0] === name) || name === "LevelName";
+function getField(name, row = editor.row) {
+  if (!row) return "";
+  if (isAttr(name)) return row.getAttribute(name) || "";
+  const e = [...row.children].find(c => c.nodeName === name); return e ? e.textContent : "";
+}
+function setField(name, value, row = editor.row) {
+  if (!row) return;
+  if (isAttr(name)) { if (value === "") row.removeAttribute(name); else row.setAttribute(name, value); return; }
+  let e = [...row.children].find(c => c.nodeName === name);
+  if (value === "") { if (e) row.removeChild(e); return; }
+  if (!e) {                             // in the parser's order, so rows read like the game's
+    const order = LEVEL.fields.map(f => f[0]), at = order.indexOf(name);
+    e = row.ownerDocument.createElement(name);
+    row.insertBefore(e, [...row.children].find(c => order.indexOf(c.nodeName) > at) || null);
+  }
+  e.textContent = value;
+}
+const isTrue = v => String(v || "").toLowerCase() === "true";
+const intField = name => { const v = getField(name); return v === "" ? 0 : (parseInt(v) || 0); };
+function settings() {
+  const box = $("level-fields"); box.replaceChildren();
+  const all = [...LEVEL.attributes, ...LEVEL.fields].filter(f => f[0] !== "DisplayName" && f[0] !== "LevelID");   // the ID is assigned
+  const grouped = new Set(SETTING_GROUPS.flatMap(g => g[2]));
+  const open = editor.openGroups || (editor.openGroups = new Set(SETTING_GROUPS.filter(g => g[3]).map(g => g[0])));
+  for (const [title, what, names] of [...SETTING_GROUPS, ["Other", "Everything else.", all.map(f => f[0]).filter(n => !grouped.has(n))]]) {
+    const d = document.createElement("details"); d.open = open.has(title);
+    d.addEventListener("toggle", () => d.open ? open.add(title) : open.delete(title));
+    const sm = document.createElement("summary"); sm.innerHTML = `${title} <small>${what}</small>`; d.appendChild(sm);
+    for (const f of all.filter(f => names.includes(f[0]))) settingRow(d, ...f);
+    box.appendChild(d);
+  }
+}
+function settingRow(box, name, type, used, example) {
+  {
+    const r = document.createElement("div"); r.className = "row";
+    const l = document.createElement("label"); l.textContent = name; l.htmlFor = "f-" + name;
+    l.title = `${HELP.settings[name] ? HELP.settings[name] + " " : ""}(${type}; set by ${used} of the game's ${LEVEL.rows} maps)`;
+    const value = getField(name);
+    if (value !== "") l.className = "used";
+    let input;
+    if (type === "bool") {
+      input = document.createElement("select"); input.className = "field";
+      input.append(new Option("(default)", ""), new Option("true", "true"), new Option("false", "false"));
+      input.value = value === "" ? "" : (isTrue(value) ? "true" : "false");
+    } else {
+      input = document.createElement("input"); input.type = "text"; input.value = value;
+      input.placeholder = example ? "e.g. " + example : "";
+    }
+    input.id = "f-" + name; input.dataset.field = name; input.title = l.title;
+    input.addEventListener("change", () => { record(); setField(name, input.value.trim()); l.className = input.value.trim() ? "used" : ""; render(); });
+    r.append(l, input); box.appendChild(r);
+    if (HELP.settings[name]) { const h = document.createElement("div"); h.className = "fieldhelp"; h.textContent = HELP.settings[name]; box.appendChild(h); }
+  }
+}
+function showField(name) { const i = $("f-" + name); if (i) i.value = getField(name); }
+
+function lineOf(el) {
+  const x1 = num(el, "X1") ?? num(el, "X"), x2 = num(el, "X2") ?? num(el, "X");
+  const y1 = num(el, "Y1") ?? num(el, "Y"), y2 = num(el, "Y2") ?? num(el, "Y");
+  return [x1, y1, x2, y2];
+}
+function offsetOf(el) {
+  let x = 0, y = 0, p = el.parentNode;
+  while (p && p.nodeType === 1 && p.nodeName !== "LevelDesc") {
+    x += num(p, "X") || 0; y += num(p, "Y") || 0;
+    if (p.nodeName === "MovingPlatform") { const k = firstKeyFrame(p); if (k) { x += num(k, "X") || 0; y += num(k, "Y") || 0; } }
+    p = p.parentNode;
+  }
+  return [x, y];
+}
+function firstKeyFrame(mp) { return mp.getElementsByTagName("KeyFrame")[0] || null; }
+function insidePlatform(el) {
+  for (let p = el.parentNode; p && p.nodeType === 1; p = p.parentNode) if (p.nodeName === "Platform") return true;
+  return false;
+}
+function drawable(el) {
+  const t = el.nodeName;
+  if (t === "Asset" || (t === "Platform" && insidePlatform(el))) return null;       // part of a platform group
+  if (t === "Platform") return "platform";
+  if (t === "Background") return "background";
+  if (LINE_TAGS.test(t) && t !== "DynamicCollision") return (num(el, "X1") ?? num(el, "X")) !== undefined ? "line" : null;
+  if (t === "KeyFrame") return el.hasAttribute("X") || el.hasAttribute("Y") ? "key" : null;
+  if (el.hasAttribute("PositionX")) return "point";
+  const hasXY = el.hasAttribute("X") && el.hasAttribute("Y");
+  if (hasXY && el.hasAttribute("W") && el.hasAttribute("H")) return "rect";
+  if (RECT_TAGS.has(t) && hasXY) return "rect";
+  if (hasXY && !el.children.length) return "point";
+  return null;
+}
+
+function artPath(assetName) {           // the path under mapArt the game loads ("../" leaves AssetDir)
+  const dir = editor.doc ? editor.doc.documentElement.getAttribute("AssetDir") || "" : "";
+  return (assetName.startsWith("../") ? assetName.slice(3) : dir + "/" + assetName).toLowerCase();
+}
+function artUrl(path) {
+  if (art.urls.has(path)) return art.urls.get(path);
+  const f = art.files.get(path) || (art.own.get(path) || {}).file;
+  if (!f) return null;
+  const u = URL.createObjectURL(f); art.urls.set(path, u); return u;
+}
+function loadArt(files) {
+  let n = 0;
+  for (const f of files) {
+    if (!/\.(png|jpe?g)$/i.test(f.name)) continue;
+    const rel = (f.webkitRelativePath || f.name).replace(/\\/g, "/");
+    const i = rel.toLowerCase().indexOf("mapart/");
+    const path = (i >= 0 ? rel.slice(i + 7) : rel.split("/").slice(1).join("/")).toLowerCase();
+    art.files.set(path, f); n++;
+  }
+  setStatus(`Game art: ${n} pictures.` + (n ? "" : " Pick the game's mapArt folder."));
+  palette(); render();
+}
+const RANDOM_ID = /^[a-z0-9]{32}$/;
+function randomId() {
+  const a = new Uint8Array(32); crypto.getRandomValues(a);
+  return [...a].map(b => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
+}
+function ownModId() {
+  if (!editor.modId) editor.modId = randomId();
+  return editor.modId;
+}
+function adoptModId(id) {              // true when the mod.json's own ID is kept
+  const keep = typeof id === "string" && RANDOM_ID.test(id);
+  if (keep) editor.modId = id; else if (!editor.doc || !editor.modId) editor.modId = randomId();
+  if (keep || !editor.doc) editor.keepModId = true;   // its LevelDesc, opened next, keeps this ID
+  retargetPictures(); modIdField();
+  return keep;
+}
+function retargetPictures() {
+  const id = ownModId(), re = /^\.\.\/\.\.\/mods\/([^/]+)\/(.+)$/;
+  if (editor.doc) for (const el of editor.doc.getElementsByTagName("*")) for (const a of ["AssetName", "AnimatedAssetName"]) {
+    const m = (el.getAttribute(a) || "").match(re);
+    if (m && m[1] !== id) el.setAttribute(a, `../../mods/${id}/${m[2]}`);
+  }
+  for (const [path, o] of [...art.own]) {
+    const m = o.assetName.match(re);
+    if (m && m[1] !== id) {
+      art.own.delete(path); art.urls.delete(path);
+      art.own.set(`../mods/${id}/${m[2]}`.toLowerCase(), { ...o, assetName: `../../mods/${id}/${m[2]}` });
+    }
+  }
+  modIdField();
+}
+function modIdField() { const f = $("s-modid"); if (f) f.value = editor.modId || ""; }
+function addOwnImages(files) {
+  const id = ownModId(), items = [];
+  for (const f of files) {
+    const name = f.name.replace(/[^A-Za-z0-9_.-]/g, "_");
+    const path = `../mods/${id}/${name}`.toLowerCase();
+    art.own.set(path, { file: f, name, assetName: `../../mods/${id}/${name}` });
+    items.push({ path, label: name, assetName: `../../mods/${id}/${name}` });
+  }
+  setStatus(`${files.length} own image(s) added; they are exported with the mod.`);
+  editor.artFolderChosen = "(own images)"; palette();
+  return items;
+}
+function imageSize(url) {
+  return new Promise(res => { const i = new Image(); i.onload = () => res([i.naturalWidth, i.naturalHeight]); i.onerror = () => res([200, 100]); i.src = url; });
+}
+function palette() {
+  const sel = $("art-folder"), box = $("palette");
+  const dir = editor.doc ? (editor.doc.documentElement.getAttribute("AssetDir") || "").toLowerCase() : "";
+  const folders = new Set(["(own images)"]);
+  for (const p of art.files.keys()) if (p.includes("/")) folders.add(p.slice(0, p.lastIndexOf("/")));
+  const keep = editor.artFolderChosen;      // the folder the player picked, else the map's own art folder
+  const shown = f => { const any = [...art.files.keys()].find(k => k.startsWith(f + "/")); if (!any) return f;
+    const c = casedPath(any); return c.slice(0, f.length); };                  // the folder's real capitals
+  sel.replaceChildren(...[...folders].sort().map(f => new Option(shown(f), f)));
+  sel.value = keep && folders.has(keep) ? keep : ([...folders].find(f => f.toLowerCase() === dir) || "(own images)");
+  const items = sel.value === "(own images)"
+    ? [...art.own.entries()].map(([path, o]) => ({ path, label: o.name, assetName: o.assetName }))
+    : [...art.files.keys()].filter(p => p.startsWith(sel.value.toLowerCase() + "/") && !p.slice(sel.value.length + 1).includes("/"))
+        .map(path => ({ path, label: path.slice(sel.value.length + 1), assetName: assetNameFor(path) }));
+  box.replaceChildren(...items.slice(0, 400).map(it => {
+    const fig = document.createElement("figure");
+    const img = document.createElement("img"); img.src = artUrl(it.path); img.alt = it.label;
+    const cap = document.createElement("figcaption"); cap.textContent = it.label; cap.title = it.label;
+    fig.append(img, cap); fig.dataset.asset = it.assetName;
+    fig.title = ($("art-mode").value === "background" ? "Make this the background: " : "Place as art: ") + it.label;
+    fig.addEventListener("click", () => useArt(it));
+    return fig;
+  }));
+}
+function normalizePath(p) {
+  const out = [];
+  for (const part of p.split("/")) {
+    if (part === "..") { if (out.length && out[out.length - 1] !== "..") out.pop(); else out.push(".."); }
+    else if (part && part !== ".") out.push(part);
+  }
+  return out.join("/");
+}
+function casedPath(path) {             // the picture's path under mapArt with its real capitals
+  const f = art.files.get(path), rel = f ? (f.webkitRelativePath || "").replace(/\\/g, "/") : "";
+  return rel ? rel.slice(rel.toLowerCase().indexOf("mapart/") + 7) : path;
+}
+function backgroundNameFor(it) {
+  if (art.own.has(it.path)) return art.own.get(it.path).assetName;
+  const cased = casedPath(it.path);
+  return cased.toLowerCase().startsWith("backgrounds/") ? cased.slice("backgrounds/".length) : "../" + cased;
+}
+async function setBackground(it) {
+  if (!editor.doc) newMap();
+  const [w, h] = await imageSize(artUrl(it.path));
+  record();
+  const d = editor.doc.documentElement;
+  let bg = d.getElementsByTagName("Background")[0];
+  if (!bg) { bg = editor.doc.createElement("Background"); d.insertBefore(bg, d.firstElementChild); }
+  bg.setAttribute("AssetName", backgroundNameFor(it)); bg.setAttribute("W", w); bg.setAttribute("H", h);
+  bg.removeAttribute("AnimatedAssetName");
+  editor.selected = bg; editor.layers.background = true; syncQuick(); render();
+  setStatus(`Background set to ${it.label}.`);
+}
+function assetNameFor(path) {           // how a Platform/Asset names a picture: relative to AssetDir, or "../" + mapArt path
+  const dir = (editor.doc ? editor.doc.documentElement.getAttribute("AssetDir") || "" : "").toLowerCase();
+  const original = [...art.files.keys()].includes(path) ? (art.files.get(path).webkitRelativePath || "") : "";
+  const cased = original ? original.replace(/\\/g, "/").slice(original.toLowerCase().indexOf("mapart/") + 7) : path;
+  return path.startsWith(dir + "/") ? cased.slice(dir.length + 1) : "../" + cased;
+}
+async function useArt(it) {
+  if ($("art-mode").value === "background") return setBackground(it);     // what a click does is the player's choice
+  if (!editor.doc) newMap();
+  const [w, h] = await imageSize(artUrl(it.path));
+  record();
+  const d = editor.doc, sel = editor.selected;
+  let asset = sel && sel.nodeName === "Asset" ? sel : (sel && sel.nodeName === "Platform" ? sel.getElementsByTagName("Asset")[0] : null);
+  if (sel && sel.nodeName === "Platform" && !asset) { asset = d.createElement("Asset"); sel.appendChild(asset); }
+  if (!asset) {                          // a new platform with this art in the middle of the view
+    const [cx, cy] = center();
+    const plat = d.createElement("Platform");
+    plat.setAttribute("InstanceName", "am_Mod" + (d.getElementsByTagName("Platform").length + 1));
+    plat.setAttribute("X", fmt(cx - w / 2)); plat.setAttribute("Y", fmt(cy - h / 2));
+    asset = d.createElement("Asset"); plat.appendChild(asset);
+    const first = d.documentElement.getElementsByTagName("HardCollision")[0];
+    d.documentElement.insertBefore(plat, first && first.parentNode === d.documentElement ? first : null);
+    editor.selected = plat;
+  }
+  asset.setAttribute("AssetName", it.assetName); asset.setAttribute("W", w); asset.setAttribute("H", h);
+  render(); setStatus("Art " + it.label + " placed.");
+}
+
+function render() {
+  const v = editor.view;
+  svg.setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`);
+  svg.replaceChildren();
+  $("welcome").classList.toggle("hidden", !!editor.doc);
+  $("map-title").textContent = editor.doc ? " · " + ($("s-display").value || $("s-name").value) : "";
+  if (!editor.doc) { outline(); checks(); inMap(); return; }
+  const px = v.w / svg.clientWidth || 1;          // one screen pixel in map units
+  const ns = "http://www.w3.org/2000/svg";
+  const mk = (name, attrs) => { const e = document.createElementNS(ns, name); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  const grid = mk("g", { stroke: "#ffffff", "stroke-opacity": .05, "stroke-width": px, "pointer-events": "none" });
+  const step = Math.pow(10, Math.ceil(Math.log10(v.w / 20)));      // about 10 to 20 lines across
+  for (let x = Math.ceil(v.x / step) * step; x < v.x + v.w; x += step) grid.appendChild(mk("line", { x1: x, y1: v.y, x2: x, y2: v.y + v.h, "stroke-opacity": x === 0 ? .25 : .05 }));
+  for (let y = Math.ceil(v.y / step) * step; y < v.y + v.h; y += step) grid.appendChild(mk("line", { x1: v.x, y1: y, x2: v.x + v.w, y2: y, "stroke-opacity": y === 0 ? .25 : .05 }));
+  svg.appendChild(grid);
+  const layers = { bg: mk("g", {}), art: mk("g", {}), back: mk("g", {}), nav: mk("g", {}), main: mk("g", {}), handles: mk("g", {}) };
+  Object.values(layers).forEach(g => svg.appendChild(g));
+  const all = editor.doc.documentElement.getElementsByTagName("*");
+  editor.shapes = [];
+  const navById = {};
+  for (const el of all) if (el.nodeName === "NavNode") navById[el.getAttribute("NavID")] = el;
+  const cam = editor.doc.documentElement.getElementsByTagName("CameraBounds")[0];
+
+  function platformGroup(el, parentTransform) {          // Flash order: scale, then rotate, then translate
+    const sx = num(el, "ScaleX") ?? num(el, "Scale") ?? 1, sy = num(el, "ScaleY") ?? num(el, "Scale") ?? 1;
+    const g = mk("g", { transform: `translate(${num(el, "X") || 0} ${num(el, "Y") || 0}) rotate(${num(el, "Rotation") || 0}) scale(${sx} ${sy})` });
+    const pieces = el.hasAttribute("AssetName") ? [el] : [];
+    for (const c of el.children) if (c.nodeName === "Asset") pieces.push(c);
+    for (const a of pieces) {
+      const w = num(a, "W") || 100, h = num(a, "H") || 50, url = artUrl(artPath(a.getAttribute("AssetName") || ""));
+      const t = a === el ? "" : `translate(${num(a, "X") || 0} ${num(a, "Y") || 0}) rotate(${num(a, "Rotation") || 0})`;
+      const node = url ? mk("image", { href: url, width: w, height: h, transform: t, preserveAspectRatio: "none", "data-asset": a.getAttribute("AssetName") })
+                       : mk("rect", { width: w, height: h, transform: t, fill: "none", stroke: "#5f6b7a", "stroke-width": 1.5 * px, "stroke-dasharray": `${6 * px} ${6 * px}` });
+      node.__el = a === el ? el : a;
+      if (editor.selected === node.__el || editor.selected === el) {
+        g.appendChild(mk("rect", { width: w, height: h, transform: t, fill: "none", stroke: "var(--sel)", "stroke-width": 3 * px }));
+      }
+      node.setAttribute("data-kind", a === el ? "Platform" : "Asset");
+      g.appendChild(node); editor.shapes.push(node);
+    }
+    for (const c of el.children) if (c.nodeName === "Platform") platformGroup(c, g);
+    parentTransform.appendChild(g);
+  }
+
+  for (const el of all) {
+    const kind = drawable(el);
+    if (!kind) continue;
+    const layer = layerOf(el);
+    if (!editor.layers[layer] && el !== editor.selected) continue;
+    const [ox, oy] = offsetOf(el);
+    const color = LAYER[layer];
+    const sel = el === editor.selected;
+    let shape;
+    if (kind === "platform") {
+      const holder = mk("g", { transform: `translate(${ox} ${oy})` });
+      platformGroup(el, holder); layers.art.appendChild(holder); continue;
+    }
+    if (kind === "background") {
+      const url = artUrl(normalizePath("backgrounds/" + (el.getAttribute("AssetName") || "")).toLowerCase());
+      if (url && cam) layers.bg.appendChild(mk("image", { href: url, x: num(cam, "X"), y: num(cam, "Y"), width: num(cam, "W"), height: num(cam, "H"),
+        preserveAspectRatio: "xMidYMid slice", opacity: .55, "pointer-events": "none" }));
+      continue;
+    }
+    if (kind === "line") {
+      const [x1, y1, x2, y2] = lineOf(el);
+      shape = mk("line", { x1:x1 + ox, y1:y1 + oy, x2:x2 + ox, y2:y2 + oy, stroke: sel ? "var(--sel)" : color,
+        "stroke-width": (sel ? 5 : 3.5) * px, "stroke-linecap":"round" });
+      layers.main.appendChild(mk("line", { x1:x1 + ox, y1:y1 + oy, x2:x2 + ox, y2:y2 + oy, stroke:"transparent",
+        "stroke-width": 14 * px, "data-hit":"1" })).__el = el;
+      if (sel) for (const end of [1, 2]) {
+        const h = mk("circle", { cx:(end === 1 ? x1 : x2) + ox, cy:(end === 1 ? y1 : y2) + oy, r: 7 * px, fill:"var(--sel)",
+          "data-end": end, class:"handle" });
+        h.__el = el; h.__end = end; layers.handles.appendChild(h);
+      }
+    } else if (kind === "key") {          // a moving platform's keyframes, relative to the MovingPlatform
+      let mp = el.parentNode; while (mp && mp.nodeName !== "MovingPlatform" && mp.nodeName !== "LevelDesc") mp = mp.parentNode;
+      const bx = mp && mp.nodeName === "MovingPlatform" ? (num(mp, "X") || 0) : 0, by = mp && mp.nodeName === "MovingPlatform" ? (num(mp, "Y") || 0) : 0;
+      const x = (num(el, "X") || 0) + bx, y = (num(el, "Y") || 0) + by;
+      const prev = el.previousElementSibling;
+      if (prev && prev.nodeName === "KeyFrame") layers.nav.appendChild(mk("line", { x1:(num(prev, "X") || 0) + bx, y1:(num(prev, "Y") || 0) + by, x2:x, y2:y,
+        stroke:"#7ee787", "stroke-width": 1.5 * px, "stroke-dasharray": `${4 * px} ${4 * px}` }));
+      shape = mk("rect", { x: x - 5 * px, y: y - 5 * px, width: 10 * px, height: 10 * px, fill: sel ? "var(--sel)" : "#7ee787" });
+    } else if (kind === "point") {
+      const x = (num(el, "X") ?? num(el, "PositionX")) + ox, y = (num(el, "Y") ?? num(el, "PositionY")) + oy;
+      if (el.nodeName === "NavNode") {
+        for (const id of (el.getAttribute("Path") || "").split(",")) {
+          const o = navById[id]; if (!o) continue;
+          const [px2, py2] = offsetOf(o);
+          layers.nav.appendChild(mk("line", { x1:x, y1:y, x2:num(o, "X") + px2, y2:num(o, "Y") + py2, stroke:LAYER.navigation, "stroke-width": 1.2 * px, opacity:.7, "data-kind":"NavPath" }));
+        }
+        shape = mk("circle", { cx:x, cy:y, r: (sel ? 6 : 4) * px, fill: sel ? "var(--sel)" : color });
+      } else {
+        const c = color;
+        const prev = el.previousElementSibling;           // a wave's custom path, point to point
+        if (layer === "wavePaths" && prev && prev.nodeName === "Point") layers.nav.appendChild(mk("line", { x1:(num(prev, "X") || 0) + ox,
+          y1:(num(prev, "Y") || 0) + oy, x2:x, y2:y, stroke:color, "stroke-width": 2 * px, "stroke-dasharray": `${8 * px} ${5 * px}` }));
+        shape = mk("circle", { cx:x, cy:y, r: (sel ? 11 : 9) * px, fill:"none", stroke: sel ? "var(--sel)" : c, "stroke-width": 3 * px,
+          "pointer-events":"all" });
+      }
+    } else {
+      const x = num(el, "X") + ox, y = num(el, "Y") + oy, w = num(el, "W"), h = num(el, "H");
+      const fill = el.nodeName === "ItemSpawn" ? "rgba(179,136,255,.12)" : (el.nodeName === "Goal" ? "rgba(255,123,114,.12)" : "none");
+      shape = mk("rect", { x, y, width:w, height:h, fill, stroke: sel ? "var(--sel)" : color, "stroke-width": (sel ? 3 : 1.5) * px });
+      if (el.nodeName.endsWith("Bounds")) shape.setAttribute("stroke-dasharray", `${10 * px} ${6 * px}`);
+      shape.__el = el; shape.setAttribute("data-kind", el.nodeName); layers.back.appendChild(shape); editor.shapes.push(shape);
+      continue;
+    }
+    shape.__el = el; shape.setAttribute("data-kind", el.nodeName);
+    layers.main.appendChild(shape); editor.shapes.push(shape);
+  }
+  if (cam && editor.layers.killBounds) killBox(cam, layers.back, mk, px);
+  layers.art.setAttribute("opacity", 1 - (editor.fade || 0) / 100);
+  inspector(); checks(); outline(); inMap();
+}
+
+function killEdges(cam) {
+  const x = num(cam, "X") || 0, y = num(cam, "Y") || 0, w = num(cam, "W") || 0, h = num(cam, "H") || 0;
+  return { l: x - intField("LeftKill"), r: x + w + intField("RightKill"), t: y - intField("TopKill"), b: y + h + intField("BottomKill"), x, y, w, h };
+}
+function killBox(cam, g, mk, px) {
+  const k = killEdges(cam), c = LAYER.killBounds, far = 1e6;
+  g.appendChild(mk("path", { d: `M${-far} ${-far}H${far}V${far}H${-far}Z M${k.l} ${k.t}V${k.b}H${k.r}V${k.t}Z`, fill: c,
+    "fill-opacity": .08, "fill-rule": "evenodd", "pointer-events": "none" }));
+  const o = { l: k.l - (isTrue(getField("HardLeftKill")) ? 0 : 200), r: k.r + (isTrue(getField("HardRightKill")) ? 0 : 200),
+    t: k.t - (isTrue(getField("SoftTopKill")) ? 200 : 0) };
+  g.appendChild(mk("rect", { x: o.l, y: o.t, width: o.r - o.l, height: k.b - o.t, fill: "none", stroke: c, opacity: .6,
+    "stroke-width": px, "stroke-dasharray": `${8 * px} ${6 * px}`, "pointer-events": "none", "data-kind": "KillOuter" }));
+  const edges = { left: [k.l, k.t, k.l, k.b], right: [k.r, k.t, k.r, k.b], top: [k.l, k.t, k.r, k.t], bottom: [k.l, k.b, k.r, k.b] };
+  for (const [side, [x1, y1, x2, y2]] of Object.entries(edges)) {
+    g.appendChild(mk("line", { x1, y1, x2, y2, stroke: c, "stroke-width": 2 * px, "pointer-events": "none" }));
+    const hit = mk("line", { x1, y1, x2, y2, stroke: "transparent", "stroke-width": 14 * px, "data-kill": side,
+      style: `cursor:${side === "left" || side === "right" ? "ew" : "ns"}-resize` });
+    hit.__kill = side; g.appendChild(hit);
+  }
+}
+
+function fit() {
+  if (!editor.doc) return;
+  const cam = editor.doc.documentElement.getElementsByTagName("CameraBounds")[0];
+  const k = cam && killEdges(cam);           // the whole kill box, as the owner's map viewer frames it
+  let b = cam ? [k.l, k.t, k.r - k.l, k.b - k.t] : [-1500, -1500, 3000, 2000];
+  const r = svg.clientWidth / Math.max(svg.clientHeight, 1) || 1.5, pad = 0.03;
+  let [x, y, w, h] = [b[0] - b[2] * pad, b[1] - b[3] * pad, b[2] * (1 + 2 * pad), b[3] * (1 + 2 * pad)];
+  if (w / h < r) { const nw = h * r; x -= (nw - w) / 2; w = nw; } else { const nh = w / r; y -= (nh - h) / 2; h = nh; }
+  editor.view = { x, y, w, h };
+  render();
+}
+
+function label(el) {
+  const id = el.getAttribute("InstanceName") || el.getAttribute("NavID") || el.getAttribute("AssetName") || el.getAttribute("PlatID")
+    || el.getAttribute("SoundEventName") || el.getAttribute("AnimationName") || el.getAttribute("FrameNum") || "";
+  return el.nodeName + (id ? " " + id : "");
+}
+function inspector() {
+  const box = $("inspector"), el = editor.selected;
+  if (!el) { box.innerHTML = '<p class="hint">Nothing selected. Click something on the map, or pick it under <b>Layers → Every element</b>.</p><p class="hint">Drag to move it, drag a line\'s round end to stretch it, <b>Delete</b> removes it, <b>Ctrl+D</b> duplicates it, arrow keys nudge it.</p>'; fillChildAdd(); return; }
+  box.replaceChildren();
+  const title = document.createElement("div"); title.className = "title"; title.textContent = nice(el.nodeName);
+  const tech = document.createElement("small"); tech.textContent = label(el); title.appendChild(tech); box.appendChild(title);
+  if (explain(el.nodeName)) { const w = document.createElement("div"); w.className = "what"; w.textContent = explain(el.nodeName); box.appendChild(w); }
+  const row = (name, value, onChange) => {
+    const r = document.createElement("div"); r.className = "row";
+    const l = document.createElement("label"); l.textContent = name; l.title = attrHelp(el.nodeName, name) || name;
+    const i = document.createElement("input"); i.type = "text"; i.value = value; i.dataset.attr = name; i.title = l.title;
+    i.addEventListener("change", () => { record(); onChange(i.value); render(); });
+    r.append(l, i); box.appendChild(r);
+  };
+  for (const a of Array.from(el.attributes)) row(a.name, a.value, v => v === "" ? el.removeAttribute(a.name) : el.setAttribute(a.name, v));
+  if (!el.children.length && (el.textContent.trim() || (SCHEMA[el.nodeName] || {}).text)) row("(text)", el.textContent, v => { el.textContent = v; });
+  const known = ((SCHEMA[el.nodeName] || {}).attributes || []).map(x => x[0]).filter(n => !el.hasAttribute(n));
+  if (known.length) {
+    const r = document.createElement("div"); r.className = "row";
+    const pick = document.createElement("select"); pick.id = "add-attr";
+    pick.append(new Option("add attribute…", ""), ...known.map(n => new Option(n, n)));
+    pick.addEventListener("change", () => { if (pick.value) { record(); el.setAttribute(pick.value, exampleValue(el.nodeName, pick.value)); render(); } });
+    r.appendChild(pick); box.appendChild(r);
+  }
+  const tools = document.createElement("div"); tools.className = "tools";
+  const btn = (text, id, fn) => { const b = document.createElement("button"); b.textContent = text; if (id) b.id = id; b.addEventListener("click", fn); tools.appendChild(b); };
+  if (el.parentNode && el.parentNode.nodeName !== "LevelDesc" && el.parentNode.nodeType === 1) btn("Parent", "select-parent", () => { editor.selected = el.parentNode; render(); });
+  btn("Duplicate", "duplicate", duplicateSelected);
+  btn("Delete", "delete", removeSelected);
+  box.appendChild(tools);
+  if (el.children.length) {
+    const list = document.createElement("div"); list.className = "hint"; list.textContent = "Holds: ";
+    for (const c of el.children) { const a = document.createElement("a"); a.href = "#"; a.textContent = label(c) + " "; a.addEventListener("click", e => { e.preventDefault(); editor.selected = c; render(); }); list.appendChild(a); }
+    box.appendChild(list);
+  }
+  fillChildAdd();
+}
+function outline() {
+  const box = $("outline"), items = [];
+  if (editor.doc) {
+    const walk = (el, depth) => { for (const c of el.children) { items.push([c, depth]); walk(c, depth + 1); } };
+    walk(editor.doc.documentElement, 0);
+  }
+  editor.outlineItems = items.map(x => x[0]);
+  box.replaceChildren(...items.map(([el, depth], i) => {
+    const id = label(el).slice(el.nodeName.length);
+    const o = new Option("  ".repeat(depth) + nice(el.nodeName) + id, String(i)); o.selected = el === editor.selected; o.title = el.nodeName; return o;
+  }));
+}
+function exampleValue(tag, attr) {
+  const [cx, cy] = center();
+  if (attr === "X" || attr === "PositionX") return cx;
+  if (attr === "Y" || attr === "PositionY") return cy;
+  if (attr === "X1") return cx - 200;
+  if (attr === "X2") return cx + 200;
+  if (attr === "Y1" || attr === "Y2") return cy;
+  if (attr === "W") return 300;
+  if (attr === "H") return 150;
+  return ((SCHEMA[tag] || {}).example || {})[attr] ?? "";
+}
+function newElement(tag) {
+  const d = editor.doc, el = d.createElement(tag), info = SCHEMA[tag] || { count: 1, attributes: [] };
+  const [cx, cy] = center();
+  if (/Collision$/.test(tag) && tag !== "DynamicCollision") { el.setAttribute("X1", cx - 200); el.setAttribute("X2", cx + 200); el.setAttribute("Y", cy); }
+  else for (const [attr, n] of info.attributes) if (n * 2 >= info.count && !/^(X1|X2|Y1|Y2)$/.test(attr)) el.setAttribute(attr, exampleValue(tag, attr));
+  if (tag === "Platform" && !el.hasAttribute("InstanceName")) el.setAttribute("InstanceName", "am_Mod" + (d.getElementsByTagName("Platform").length + 1));
+  if (info.text) el.textContent = ((SCHEMA[tag] || {}).example || {})["(text)"] || "0";
+  for (const child of requiredChildren(tag)) el.appendChild(newElement(child));
+  return el;
+}
+function requiredChildren(tag) {       // children every shipped instance has (a Gfx needs AnimFile and AnimClass)
+  const info = SCHEMA[tag]; if (!info) return [];
+  return info.children.filter(c => SCHEMA[c] && SCHEMA[c].parents.length === 1 && SCHEMA[c].count >= info.count && tag !== "LevelDesc");
+}
+function fillChildAdd() {
+  const sel = $("add-child"), el = editor.selected;
+  const kids = el ? (SCHEMA[el.nodeName] || {}).children || [] : [];
+  sel.replaceChildren(...(kids.length ? kids.map(k => new Option(`${nice(k)} (${k})`, k)) : [new Option(el ? "nothing goes inside " + nice(el.nodeName) : "select an element first", "")]));
+  sel.disabled = !kids.length; $("add-inside").disabled = !kids.length;
+}
+function checks() {
+  const w = [];                           // [problem, fix button text, fix]
+  const d = editor.doc && editor.doc.documentElement;
+  if (d) {
+    const count = t => d.getElementsByTagName(t).length;
+    const name = $("s-name").value.trim();
+    if (!/^[A-Za-z0-9_]+$/.test(name)) w.push(["Map ID must be letters, digits and _ only.", "Edit", () => { showTab("map"); $("s-name").focus(); }]);
+    if (!d.getElementsByTagName("Background").length) w.push(["No Background: the game stops with a Fatal error without one (export adds a default).", "Add one", () => { record(); ensureBackground(); render(); }]);
+    if (!count("CameraBounds")) w.push(["No CameraBounds: the camera needs them.", "Add", () => add("CameraBounds")]);
+    if (!count("HardCollision")) w.push(["No HardCollision: players will fall through.", "Add a floor", () => add("HardCollision")]);
+    if (count("Respawn") < 2) w.push(["Fewer than 2 Respawns.", "Add one", () => add("Respawn")]);
+    if (!count("ItemSpawn")) w.push(["No ItemSpawn: no weapons will drop.", "Add one", () => add("ItemSpawn")]);
+    const missing = new Set();
+    for (const el of d.getElementsByTagName("*")) {
+      const v = el.getAttribute("AssetName") || "";
+      if (v.startsWith("../../mods/") && ![...art.own.values()].some(o => o.assetName === v)) missing.add(v.split("/").pop());
+    }
+    for (const f of missing) w.push([`Your picture ${f} isn't loaded, so it won't be exported: drop it onto the page.`, "Add…", () => $("add-image").click()]);
+    if (!count("NavNode")) w.push(["No bot navigation: a match with bots crashes without it (export generates it).", "Generate", () => generateNav()]);
+  }
+  const list = $("warnings");
+  list.replaceChildren(...(w.length ? w : d ? [["No problems found."]] : []).map(([text, fixText, fix]) => {
+    const li = document.createElement("li"); li.textContent = text; if (!fix) li.className = "ok";
+    if (fix) { const b = document.createElement("button"); b.textContent = fixText; b.addEventListener("click", fix); li.appendChild(b); }
+    return li;
+  }));
+  $("check-count").hidden = !w.length; $("check-count").textContent = w.length;
+}
+
+function center() { const v = editor.view; return [snap(v.x + v.w / 2), snap(v.y + v.h / 2)]; }
+function add(tag) {
+  if (!editor.doc) newMap();
+  record();
+  const d = editor.doc, el = newElement(tag);
+  if (tag === "ItemSpawn") { const [cx, cy] = center(); el.setAttribute("X", cx - 150); el.setAttribute("Y", cy - 75); el.setAttribute("W", 300); el.setAttribute("H", 150); }
+  const nav = d.documentElement.getElementsByTagName("NavNode")[0];
+  d.documentElement.insertBefore(el, nav && nav.parentNode === d.documentElement ? nav : null);
+  editor.selected = el; render(); showTab("edit");
+  setStatus(`Added ${nice(tag)}. Drag it where you want it.`);
+}
+function addInside(tag) {
+  const parent = editor.selected; if (!parent || !tag) return;
+  record();
+  const el = newElement(tag);
+  if (parent.nodeName !== "LevelDesc") for (const a of ["X", "Y"]) if (el.hasAttribute(a) && (parent.hasAttribute("X") || parent.nodeName === "Platform")) el.setAttribute(a, 0);
+  parent.appendChild(el); editor.selected = el; render(); setStatus(`Added ${tag} inside ${parent.nodeName}.`);
+}
+function removeSelected() {
+  const el = editor.selected; if (!el) return;
+  record(); el.parentNode.removeChild(el); editor.selected = null; render(); setStatus(`Deleted ${nice(el.nodeName)}. Ctrl+Z brings it back.`);
+}
+function duplicateSelected() {
+  const el = editor.selected; if (!el || !el.parentNode || el.parentNode.nodeType !== 1) return;
+  record(); const c = el.cloneNode(true); el.parentNode.insertBefore(c, el.nextSibling);
+  moveBy(c, 50, 0); editor.selected = c; render(); setStatus(`Duplicated ${nice(el.nodeName)}.`);
+}
+
+function snapshot() {
+  const all = editor.doc ? [...editor.doc.getElementsByTagName("*")] : [];
+  return { level: editor.doc && new XMLSerializer().serializeToString(editor.doc), row: editor.row && new XMLSerializer().serializeToString(editor.row),
+    sel: all.indexOf(editor.selected) };
+}
+function record() {
+  if (!editor.doc) return;
+  (editor.undo = editor.undo || []).push(snapshot()); if (editor.undo.length > 200) editor.undo.shift();
+  editor.redo = []; undoButtons();
+}
+function restore(snap) {
+  editor.doc = new DOMParser().parseFromString(snap.level, "application/xml");
+  editor.row = snap.row ? rowFrom(snap.row) : editor.row;
+  editor.selected = snap.sel >= 0 ? editor.doc.getElementsByTagName("*")[snap.sel] || null : null;
+  settings(); render(); undoButtons();
+}
+function undo() { if (!editor.undo || !editor.undo.length) return; editor.redo.push(snapshot()); restore(editor.undo.pop()); setStatus("Undone."); }
+function redo() { if (!editor.redo || !editor.redo.length) return; editor.undo.push(snapshot()); restore(editor.redo.pop()); setStatus("Redone."); }
+function undoButtons() { $("undo").disabled = !(editor.undo || []).length; $("redo").disabled = !(editor.redo || []).length; }
+function moveBy(el, dx, dy) {
+  for (const a of ["X", "X1", "X2", "PositionX"]) if (el.hasAttribute(a)) el.setAttribute(a, fmt(num(el, a) + dx));
+  for (const a of ["Y", "Y1", "Y2", "PositionY"]) if (el.hasAttribute(a)) el.setAttribute(a, fmt(num(el, a) + dy));
+}
+function moveEnd(el, end, x, y) {
+  const [x1, y1, x2, y2] = lineOf(el);
+  for (const a of ["X", "Y"]) el.removeAttribute(a);
+  el.setAttribute("X1", fmt(end === 1 ? x : x1)); el.setAttribute("Y1", fmt(end === 1 ? y : y1));
+  el.setAttribute("X2", fmt(end === 2 ? x : x2)); el.setAttribute("Y2", fmt(end === 2 ? y : y2));
+  if (el.getAttribute("Y1") === el.getAttribute("Y2")) { el.setAttribute("Y", el.getAttribute("Y1")); el.removeAttribute("Y1"); el.removeAttribute("Y2"); }
+  else if (el.getAttribute("X1") === el.getAttribute("X2")) { el.setAttribute("X", el.getAttribute("X1")); el.removeAttribute("X1"); el.removeAttribute("X2"); }
+}
+
+function toMap(evt) {
+  const p = svg.createSVGPoint(); p.x = evt.clientX; p.y = evt.clientY;
+  const q = p.matrixTransform(svg.getScreenCTM().inverse()); return [q.x, q.y];
+}
+let drag = null;
+svg.addEventListener("pointerdown", evt => {
+  if (!editor.doc) return;
+  const t = evt.target, [mx, my] = toMap(evt);
+  if (t.__kill) { drag = { kill: t.__kill }; svg.setPointerCapture(evt.pointerId); return; }
+  if (t.__el) {
+    editor.selected = t.__el;
+    let mover = t.__el;                  // art (an Asset or a nested Platform) moves with its whole platform
+    for (let p = mover.parentNode; p && p.nodeType === 1 && p.nodeName !== "LevelDesc"; p = p.parentNode) if (p.nodeName === "Platform") mover = p;
+    if (mover !== t.__el && mover.parentNode.nodeName === "MovingPlatform") mover = t.__el;
+    drag = { el:mover, end:t.__end, x:mx, y:my, moved:false };
+    svg.setPointerCapture(evt.pointerId); render(); showTab("edit");
+  } else {
+    editor.selected = null;
+    drag = { pan:true, x:evt.clientX, y:evt.clientY, view:{ ...editor.view } };
+    svg.setPointerCapture(evt.pointerId); render();
+  }
+});
+svg.addEventListener("pointermove", evt => {
+  if (editor.doc) { const [mx, my] = toMap(evt); $("coords").textContent = `x ${Math.round(mx)}  y ${Math.round(my)}`; }
+  hoverTip(evt);
+  if (!drag) return;
+  if (drag.pan) {
+    const k = editor.view.w / svg.clientWidth;
+    editor.view = { ...drag.view, x: drag.view.x - (evt.clientX - drag.x) * k, y: drag.view.y - (evt.clientY - drag.y) * k };
+    render(); return;
+  }
+  if (!drag.pan && !drag.recorded) { record(); drag.recorded = true; }
+  if (drag.kill) {
+    const cam = editor.doc.documentElement.getElementsByTagName("CameraBounds")[0]; if (!cam) return;
+    const [mx, my] = toMap(evt), k = killEdges(cam);
+    const field = { left: "LeftKill", right: "RightKill", top: "TopKill", bottom: "BottomKill" }[drag.kill];
+    const v = { left: k.x - mx, right: mx - k.x - k.w, top: k.y - my, bottom: my - k.y - k.h }[drag.kill];
+    setField(field, String(Math.max(0, evt.shiftKey ? Math.round(v) : snap(v)))); showField(field); drag.moved = true; drag.el = { nodeName: field };
+    render(); return;
+  }
+  const [mx, my] = toMap(evt), [ox, oy] = offsetOf(drag.el), sn = evt.shiftKey ? (v => Math.round(v)) : snap;
+  if (drag.end) { moveEnd(drag.el, drag.end, sn(mx - ox), sn(my - oy)); render(); return; }
+  const dx = sn(mx - drag.x), dy = sn(my - drag.y);
+  if (dx || dy) { moveBy(drag.el, dx, dy); drag.x += dx; drag.y += dy; drag.moved = true; render(); }
+});
+svg.addEventListener("pointerleave", () => { $("tip").style.display = "none"; });
+function hoverTip(evt) {
+  const tip = $("tip"), t = evt.target;
+  if (drag || !(t.__el || t.__kill)) { tip.style.display = "none"; return; }
+  const name = t.__kill ? "Kill box edge" : nice(t.__el.nodeName);
+  const text = t.__kill ? "Drag to change how far out players are knocked out." : explain(t.__el.nodeName);
+  tip.innerHTML = ""; const b = document.createElement("b"); b.textContent = name; const sp = document.createElement("span"); sp.textContent = text;
+  tip.append(b, sp); tip.style.display = "block";
+  const box = $("stage").getBoundingClientRect();
+  tip.style.left = Math.min(evt.clientX - box.left + 14, box.width - 290) + "px"; tip.style.top = (evt.clientY - box.top + 14) + "px";
+}
+svg.addEventListener("pointerup", () => {
+  if (drag && drag.kill && drag.moved) setStatus(`Kill box: ${drag.el.nodeName} = ${getField(drag.el.nodeName)}.`);
+  else if (drag && drag.moved) setStatus(`Moved ${nice(drag.el.nodeName)}.`);
+  else if (drag && drag.recorded && !drag.moved && !drag.end && editor.undo) { editor.undo.pop(); undoButtons(); }
+  drag = null;
+});
+svg.addEventListener("wheel", evt => {
+  evt.preventDefault();
+  const [mx, my] = toMap(evt), k = evt.deltaY > 0 ? 1.15 : 1 / 1.15, v = editor.view;
+  editor.view = { x: mx - (mx - v.x) * k, y: my - (my - v.y) * k, w: v.w * k, h: v.h * k }; render();
+}, { passive:false });
+document.addEventListener("keydown", evt => {
+  const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(evt.target.tagName), ctrl = evt.ctrlKey || evt.metaKey, k = evt.key.toLowerCase();
+  if (ctrl && k === "z" && !evt.shiftKey && !typing) { undo(); evt.preventDefault(); return; }
+  if (ctrl && (k === "y" || (k === "z" && evt.shiftKey)) && !typing) { redo(); evt.preventDefault(); return; }
+  if (typing) return;
+  if (evt.key === "Delete" || evt.key === "Backspace") { removeSelected(); evt.preventDefault(); }
+  else if (ctrl && k === "d") { duplicateSelected(); evt.preventDefault(); }
+  else if (evt.key === "Escape") { editor.selected = null; render(); }
+  else if (k === "f" && !ctrl) fit();
+  else if (evt.key.startsWith("Arrow") && editor.selected) {
+    const step = evt.shiftKey ? 10 * SNAP : SNAP, d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[evt.key];
+    if (!editor.nudging) { record(); editor.nudging = true; }
+    moveBy(editor.selected, ...d); render(); evt.preventDefault();
+  }
+});
+document.addEventListener("keyup", evt => { if (evt.key.startsWith("Arrow")) editor.nudging = false; });
+
+const artPieces = () => editor.doc ? [...editor.doc.documentElement.children].filter(e => e.nodeName === "Platform") : [];
+function removeAll(tags, what) {
+  if (!editor.doc) return 0;
+  const els = [...editor.doc.documentElement.children].filter(e => tags.includes(e.nodeName));   // top level only: moving platforms keep their art
+  if (!els.length) return 0;
+  record();
+  for (const e of els) e.parentNode.removeChild(e);
+  if (editor.selected && !editor.doc.contains(editor.selected)) editor.selected = null;
+  render(); setStatus(`Removed ${els.length} ${what}. Ctrl+Z brings ${els.length === 1 ? "it" : "them"} back.`);
+  return els.length;
+}
+function inMap() {
+  const box = $("inmap"); if (!box) return;
+  if (!editor.doc) { box.innerHTML = '<div class="hint">Open or start a map first.</div>'; return; }
+  const d = editor.doc.documentElement, count = t => [...d.children].filter(e => e.nodeName === t).length;
+  const bg = d.getElementsByTagName("Background")[0];
+  const rows = [
+    ["Background", bg ? bg.getAttribute("AssetName") || "(no picture)" : "none: export adds the default one, the game needs one", bg ? 1 : 0, "rm-background", () => removeAll(["Background"], "background")],
+    ["Art pieces", "platform pictures (Platform)", count("Platform"), "rm-art", () => removeAll(["Platform"], "art pieces")],
+    ["Animated backgrounds", "clouds, birds, lights (AnimatedBackground)", count("AnimatedBackground"), "rm-anim", () => removeAll(["AnimatedBackground"], "animated backgrounds")],
+    ["Foreground pictures", "drawn in front of players (ForegroundAsset)", count("ForegroundAsset"), "rm-fore", () => removeAll(["ForegroundAsset"], "foreground pictures")],
+  ];
+  box.replaceChildren(...rows.map(([name, sub, n, id, fn]) => {
+    const r = document.createElement("div"); r.className = "inmap";
+    const t = document.createElement("span"); t.textContent = `${name}${n > 1 ? " (" + n + ")" : ""}`;
+    const sm = document.createElement("small"); sm.textContent = sub; t.appendChild(sm);
+    const tools = document.createElement("div"); tools.className = "tools"; tools.style.cssText = "margin:0;justify-content:flex-end";
+    if (id === "rm-background") {
+      const own = document.createElement("label"); own.className = "file"; own.textContent = "Your picture…";
+      own.title = "Use a PNG or JPG of your own as the background; it's exported with the mod";
+      const inp = document.createElement("input"); inp.type = "file"; inp.id = "bg-own"; inp.accept = "image/png,image/jpeg";
+      inp.addEventListener("change", () => { const items = addOwnImages([...inp.files]); if (items[0]) setBackground(items[0]); inp.value = ""; });
+      own.appendChild(inp);
+      const pick = document.createElement("button"); pick.id = "bg-pick"; pick.textContent = "Pick…";
+      pick.title = "Pick one of the game's backgrounds (or any picture) below";
+      pick.addEventListener("click", () => {
+        $("art-mode").value = "background";
+        const folders = [...$("art-folder").options].map(o => o.value), bgs = folders.find(f => f.toLowerCase() === "backgrounds");
+        if (bgs) { editor.artFolderChosen = bgs; }
+        palette(); $("palette").scrollIntoView({ block: "nearest" });
+        setStatus(bgs ? "Click a background below." : "Open the Game art folder… to see the game's backgrounds, or use Your picture…");
+      });
+      tools.append(own, pick);
+    }
+    const b = document.createElement("button"); b.id = id; b.textContent = n > 1 ? "Remove all" : "Remove"; b.disabled = !n; b.addEventListener("click", fn);
+    tools.appendChild(b); r.append(t, tools); return r;
+  }));
+}
+function syncQuick() {
+  $("q-background").checked = editor.layers.background; $("q-assets").checked = editor.layers.assets;
+  document.querySelectorAll("#layers input").forEach(c => { c.checked = editor.layers[c.dataset.layer]; });
+}
+
+function mapSegments() {
+  const out = [];
+  for (const el of editor.doc.documentElement.children) {        // the map's own collisions; moving platforms keep their nodes
+    if (!/Collision$/.test(el.nodeName) || el.nodeName === "DynamicCollision") continue;
+    const [x1, y1, x2, y2] = lineOf(el);
+    if ([x1, y1, x2, y2].every(Number.isFinite)) out.push({ tag: el.nodeName, x1, y1, x2, y2 });
+  }
+  return out;
+}
+function replaceNav(nodes) {
+  const root = editor.doc.documentElement;
+  for (const el of [...root.children]) if (el.nodeName === "NavNode") root.removeChild(el);
+  for (const n of nodes) root.appendChild(n);
+}
+function generateNav() {
+  if (!editor.doc) newMap();
+  const res = NavGen.generate(mapSegments());
+  if (!res.nodes.length) { setStatus("No floors found: add a hard floor or a soft platform first."); return null; }
+  const root = editor.doc.documentElement;
+  record();
+  editor.navBackup = [...root.children].filter(e => e.nodeName === "NavNode");
+  replaceNav(res.nodes.map(n => {
+    const el = editor.doc.createElement("NavNode");
+    el.setAttribute("NavID", n.id); el.setAttribute("Path", n.links.join(",")); el.setAttribute("X", n.x); el.setAttribute("Y", n.y);
+    return el;
+  }));
+  editor.layers.navigation = true; const box = document.querySelector('[data-layer="navigation"]'); if (box) box.checked = true;
+  $("undo-nav").disabled = false; editor.selected = null; render();
+  setStatus(`Generated ${res.nodes.length} nav nodes on ${res.floors} floors` + (res.groups > 1
+    ? `, in ${res.groups} separate parts: islands too far apart or walled off. Bots can't cross between them; move a platform or add one.`
+    : ", all connected."));
+  return res;
+}
+function undoNav() {
+  if (!editor.navBackup || !editor.doc) return;
+  record(); replaceNav(editor.navBackup); editor.navBackup = null; $("undo-nav").disabled = true; render();
+  setStatus("Navigation put back as it was.");
+}
+
+function xmlEscape(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function exportMod() {
+  if (!editor.doc) { setStatus("Nothing to export yet."); return null; }
+  const name = $("s-name").value.trim();
+  const root = editor.doc.documentElement;
+  const addedBackground = ensureBackground();
+  const hasNav = root.getElementsByTagName("NavNode").length > 0;
+  const addedNav = hasNav ? null : generateNav();
+  root.setAttribute("LevelName", name);
+  root.setAttribute("AssetDir", $("s-assetdir").value.trim());
+  const level = new XMLSerializer().serializeToString(editor.doc).replace(/^<\?xml[^>]*>\s*/, "");
+  const rowEl = (editor.row || rowFrom(ROW_TEMPLATE)).cloneNode(true);
+  rowEl.setAttribute("LevelName", name);
+  setField("DisplayName", $("s-display").value, rowEl); setField("LevelID", "@id", rowEl);
+  const row = new XMLSerializer().serializeToString(rowEl).replace(/ xmlns="[^"]*"/, "");
+  const sets = $("s-sets").value.split(",").map(s => s.trim()).filter(Boolean)
+    .map(s => `<LevelSetType LevelSetName="${xmlEscape(s)}"><LevelTypes>+${xmlEscape(name)}</LevelTypes></LevelSetType>`);
+  const id = ownModId();
+  const file = `LevelDesc_${name}.xml`;
+  const mod = { id, name: $("s-display").value || name, version: "1.0",
+    description: "A map made with the BH map editor (tools/map-editor).",
+    tables: { LevelTypes: [row], LevelSetTypes: sets }, files: [file] };
+  const modText = JSON.stringify(mod, null, 2) + "\n";
+  $("out-mod").value = modText; $("out-level").value = level + "\n";
+  const used = [...art.own.values()].filter(o => level.includes(o.assetName));
+  if (addedBackground) { render(); checks(); }
+  return { id, file, modText, level: level + "\n", addedBackground, addedNav: addedNav ? addedNav.nodes.length : 0, images: used.map(o => ({ name: o.name, file: o.file })) };
+}
+function download(name, content) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(content instanceof Blob ? content : new Blob([content], { type: "application/octet-stream" }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+
+function readFile(input, then) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => then(r.result); r.readAsText(f); input.value = "";
+}
+$("open-level").addEventListener("change", e => readFile(e.target, load));
+$("open-mod").addEventListener("change", e => readFile(e.target, loadMod));
+$("new-map").addEventListener("click", newMap);
+$("fit").addEventListener("click", fit);
+$("export").addEventListener("click", async () => {
+  const out = exportMod(); if (!out) return;
+  const dir = `mods/${out.id}/`, enc = new TextEncoder();
+  const files = [[dir + "mod.json", enc.encode(out.modText)], [dir + out.file, enc.encode(out.level)]];
+  for (const im of out.images) files.push([dir + im.name, new Uint8Array(await im.file.arrayBuffer())]);
+  download(out.id + ".zip", zip(files));
+  setStatus(`Exported ${out.id}.zip: unzip it into your Brawlhalla folder, then press F8 in the game's menus.` +
+    (out.addedBackground ? " It had no Background, which the game needs; a default one was added." : "") +
+    (out.addedNav ? ` It had no bot navigation, which bots need (without it a match with bots crashes); ${out.addedNav} nav nodes were generated.` : ""));
+});
+
+function zip(files) {
+  const crcTable = zip.t || (zip.t = Array.from({ length: 256 }, (_, n) => { for (let k = 0; k < 8; k++) n = n & 1 ? 0xEDB88320 ^ (n >>> 1) : n >>> 1; return n >>> 0; }));
+  const crc = b => { let c = 0xFFFFFFFF; for (const x of b) c = crcTable[(c ^ x) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const parts = [], central = []; let offset = 0;
+  const u16 = v => [v & 255, (v >>> 8) & 255], u32 = v => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+  for (const [name, data] of files) {
+    const n = new TextEncoder().encode(name), c = crc(data), size = data.length;
+    const common = [...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(c), ...u32(size), ...u32(size), ...u16(n.length), ...u16(0)];
+    const local = new Uint8Array([...u32(0x04034b50), ...common]);
+    parts.push(local, n, data);
+    central.push(new Uint8Array([...u32(0x02014b50), ...u16(20), ...common, ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset)]), n);
+    offset += local.length + n.length + size;
+  }
+  const cdSize = central.reduce((a, b) => a + b.length, 0);
+  const end = new Uint8Array([...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cdSize), ...u32(offset), ...u16(0)]);
+  return new Blob([...parts, ...central, end], { type: "application/zip" });
+}
+document.querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => add(b.dataset.add)));
+$("add-type").replaceChildren(...Object.keys(SCHEMA).filter(t => (SCHEMA[t].parents || []).includes("LevelDesc")).sort().map(t => new Option(`${nice(t)} (${t})`, t)));
+$("add-any").addEventListener("click", () => add($("add-type").value));
+$("add-inside").addEventListener("click", () => addInside($("add-child").value));
+$("outline").addEventListener("change", e => { editor.selected = editor.outlineItems[+e.target.value] || null; render(); showTab("edit"); });
+$("open-art").addEventListener("change", e => { loadArt(e.target.files); });
+$("add-image").addEventListener("change", e => { addOwnImages([...e.target.files]); e.target.value = ""; });
+$("art-folder").addEventListener("change", e => {
+  editor.artFolderChosen = e.target.value;
+  $("art-mode").value = e.target.value.toLowerCase() === "backgrounds" ? "background" : "art";     // a background folder means backgrounds
+  palette();
+});
+$("art-mode").addEventListener("change", palette);
+fillChildAdd();
+for (const id of ["s-name", "s-display", "s-sets"]) $(id).addEventListener("input", checks);
+$("layers").replaceChildren(...LAYERS.map(([key, name, color]) => {
+  const l = document.createElement("label"), c = document.createElement("input"), i = document.createElement("i");
+  c.type = "checkbox"; c.checked = editor.layers[key]; c.dataset.layer = key; i.style.background = color;
+  c.addEventListener("change", () => { editor.layers[key] = c.checked; syncQuick(); render(); });
+  l.append(c, i, name); return l;
+}));
+$("add-set").replaceChildren(new Option("add a map list…", ""), ...LEVEL.sets.map(n => new Option(n, n)));
+$("add-set").addEventListener("change", e => {
+  const have = $("s-sets").value.split(",").map(x => x.trim()).filter(Boolean);
+  if (e.target.value && !have.includes(e.target.value)) $("s-sets").value = [...have, e.target.value].join(",");
+  e.target.value = ""; checks();
+});
+$("gen-nav").addEventListener("click", generateNav);
+function showTab(name) {
+  document.querySelectorAll("nav.tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
+  document.querySelectorAll("section[data-tab]").forEach(sec => sec.classList.toggle("on", sec.dataset.tab === name));
+}
+editor.showTab = showTab;
+document.querySelectorAll("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+$("help-steps").replaceChildren(...HELP.guide.map(([t, x]) => { const li = document.createElement("li"); li.innerHTML = `<b></b> `; li.firstChild.textContent = t + ":"; li.append(x); return li; }));
+$("help-keys").replaceChildren(...HELP.shortcuts.map(([k, x]) => { const tr = document.createElement("tr"); tr.innerHTML = "<td></td><td></td>"; tr.cells[0].textContent = k; tr.cells[1].textContent = x; return tr; }));
+for (const id of ["help-open", "w-help"]) $(id).addEventListener("click", () => $("help").showModal());
+$("w-new").addEventListener("click", newMap);
+$("undo").addEventListener("click", undo); $("redo").addEventListener("click", redo);
+async function openFiles(list) {
+  const files = [...list], text = f => f.text();
+  const xml = files.filter(f => /\.xml$/i.test(f.name)), json = files.filter(f => /\.json$/i.test(f.name)), pics = files.filter(f => /\.(png|jpe?g)$/i.test(f.name));
+  for (const f of xml) load(await text(f));
+  for (const f of json) loadMod(await text(f));
+  if (pics.length) { if (!editor.doc) newMap(); addOwnImages(pics); showTab("art"); }
+  if (!xml.length && !json.length && !pics.length) setStatus("Open a LevelDesc_*.xml, a mod.json or PNG/JPG pictures.");
+}
+for (const id of ["open-files", "w-open-files"]) $(id).addEventListener("change", e => { openFiles(e.target.files).then(() => { e.target.value = ""; }); });
+let dragDepth = 0;
+document.addEventListener("dragenter", e => { if (e.dataTransfer.types.includes("Files")) { dragDepth++; document.body.classList.add("dragging"); e.preventDefault(); } });
+document.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove("dragging"); } });
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => { e.preventDefault(); dragDepth = 0; document.body.classList.remove("dragging"); openFiles(e.dataTransfer.files); });
+function zoomBy(k) { const v = editor.view, cx = v.x + v.w / 2, cy = v.y + v.h / 2; editor.view = { x: cx - v.w * k / 2, y: cy - v.h * k / 2, w: v.w * k, h: v.h * k }; render(); }
+$("zoom-in").addEventListener("click", () => zoomBy(1 / 1.3)); $("zoom-out").addEventListener("click", () => zoomBy(1.3));
+for (const [id, layer] of [["q-background", "background"], ["q-assets", "assets"]])
+  $(id).addEventListener("change", e => { editor.layers[layer] = e.target.checked; syncQuick(); render(); });
+$("q-fade").addEventListener("input", e => { editor.fade = +e.target.value; render(); });
+$("layers-all").addEventListener("click", () => { for (const [k] of LAYERS) editor.layers[k] = true; syncQuick(); render(); });
+$("layers-none").addEventListener("click", () => { for (const [k] of LAYERS) editor.layers[k] = false; syncQuick(); render(); });
+const topLevel = Object.keys(SCHEMA).filter(t => (SCHEMA[t].parents || []).includes("LevelDesc"));
+$("addgroups").replaceChildren(...HELP.groups.map(([g, title, what]) => {
+  const tags = topLevel.filter(t => ((HELP.elements[t] || {}).group || "advanced") === g);
+  if (!tags.length) return document.createComment(g);
+  const box = document.createElement("div"); box.className = "addgroup";
+  box.innerHTML = "<h4></h4><p></p><div class='addlist'></div>"; box.children[0].textContent = title; box.children[1].textContent = what;
+  for (const t of tags.sort((a, b) => nice(a).localeCompare(nice(b)))) {
+    const b = document.createElement("button"); b.title = explain(t); b.dataset.addTag = t;
+    b.textContent = nice(t); const sm = document.createElement("small"); sm.textContent = t; b.appendChild(sm);
+    b.addEventListener("click", () => add(t)); box.children[2].appendChild(b);
+  }
+  return box;
+}));
+$("undo-nav").addEventListener("click", undoNav);
+editor.row = rowFrom(ROW_TEMPLATE); settings(); render();
+window.addEventListener("resize", fit);
+Object.assign(editor, { load, loadMod, exportMod, add, addInside, render, fit, loadArt, addOwnImages, useArt, palette });
+</script>
+</body>
+</html>

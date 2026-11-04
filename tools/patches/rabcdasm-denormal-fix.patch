@@ -1,0 +1,53 @@
+# RABCDAsm commit 8ed623a3225ec9947f75f50bc78f5d2412a0802d (github.com/CyberShadow/RABCDAsm)
+diff --git a/assembler.d b/assembler.d
+index 2d00477..2b254a9 100644
+--- a/assembler.d
++++ b/assembler.d
+@@ -622,7 +622,7 @@ final class Assembler
+ 		auto w = readWord();
+ 		if (w == "null")
+ 			return ABCFile.NULL_DOUBLE;
+-		return to!double(w);
++		{ import core.stdc.stdlib : strtod; import std.string : toStringz; auto z = toStringz(w); typeof(z) e; auto d = strtod(z, &e); enforce(e == z + w.length, "Bad double: " ~ w); return d; }
+ 	}
+ 
+ 	const(char)[] readString()
+diff --git a/disassembler.d b/disassembler.d
+index 4dec98e..9e48c07 100644
+--- a/disassembler.d
++++ b/disassembler.d
+@@ -1147,21 +1147,22 @@ final class Disassembler
+ 			formattedWrite(&buf, "%.18g", v);
+ 			char[] s = buf.data();
+ 
++			static double parseD(const(char)[] x){ import core.stdc.stdlib : strtod; import std.string : toStringz; return strtod(toStringz(x), null); }
+ 			static double forceDouble(double d) { static double n; n = d; return n; }
+ 			if (s != "nan" && s != "inf" && s != "-inf")
+ 			{
+-				if (forceDouble(to!double(s)) == v)
++				if (forceDouble(parseD(s)) == v)
+ 				{
+ 					foreach_reverse (i; 1..s.length)
+ 						if (s[i]>='0' && s[i]<='8')
+ 						{
+ 							s[i]++;
+-							if (forceDouble(to!double(s[0..i+1]))==v)
++							if (forceDouble(parseD(s[0..i+1]))==v)
+ 								s = s[0..i+1];
+ 							else
+ 								s[i]--;
+ 						}
+-					while (s.length>2 && s[$-1]!='.' && forceDouble(to!double(s[0..$-1]))==v)
++					while (s.length>2 && s[$-1]!='.' && forceDouble(parseD(s[0..$-1]))==v)
+ 						s = s[0..$-1];
+ 				}
+ 				else
+@@ -1169,7 +1170,7 @@ final class Disassembler
+ 					buf.pos = 0;
+ 					formattedWrite(&buf, "%.13a", v);
+ 					s = buf.data();
+-					auto n = forceDouble(to!double(s));
++					auto n = forceDouble(parseD(s));
+ 					assert(n == v,
+ 						"Can't print precise representation of double: %(%02X %) (%.18g) => %s => %(%02X %) (%.18g)".format(
+ 							cast(ubyte[])cast(void[])[v], v,

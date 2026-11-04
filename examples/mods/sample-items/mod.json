@@ -1,0 +1,108 @@
+{
+  "id": "sample-items",
+  "name": "Sample items",
+  "version": "1.0",
+  "description": "Adds a hammer, avatar, emote, emoji, sidekick, KO effect, border and title, each based on one from the game.",
+  "strings": {
+    "English": {
+      "BHSample_TealHammer_DisplayName": "Sample Teal Hammer (mod)",
+      "BHSample_Avatar_DisplayName": "Sample Avatar (mod)",
+      "BHSample_Taunt_DisplayName": "Sample Dance (mod)",
+      "BHSample_Emoji_DisplayName": "Sample Wow (mod)",
+      "BHSample_SpawnBot_DisplayName": "Sample Hawk (mod)",
+      "BHSample_KOEffect_DisplayName": "Sample Smoke (mod)",
+      "BHSample_Border_DisplayName": "Sample Border (mod)",
+      "BHSample_Title_DisplayName": "Sample Title (mod)"
+    }
+  },
+  "tables": {
+    "weaponSkinTypes": [
+      {
+        "copy": "HammerJade",
+        "set": {
+          "WeaponSkinName": "HammerBHSampleTeal",
+          "WeaponSkinID": "@id",
+          "DbID": "@id",
+          "DisplayNameKey": "BHSample_TealHammer_DisplayName",
+          "Description": "A sample weapon skin added by a content mod.",
+          "WeaponLt_Define": "0x8FE3DA",
+          "Weapon_Define": "0x1A8C82",
+          "WeaponDk_Define": "0x0E5A55",
+          "WeaponAcc_Define": "0xD4A017"
+        }
+      }
+    ],
+    "avatarTypes": [
+      {
+        "copy": "AngryFace",
+        "set": {
+          "AvatarName": "BHSampleAvatar",
+          "AvatarID": "@id",
+          "DisplayNameKey": "BHSample_Avatar_DisplayName"
+        }
+      }
+    ],
+    "TauntTypes": [
+      {
+        "copy": "CossackDance",
+        "set": {
+          "@TauntName": "BHSampleDance",
+          "TauntID": "@id",
+          "DisplayNameKey": "BHSample_Taunt_DisplayName"
+        }
+      }
+    ],
+    "EmojiTypes": [
+      {
+        "copy": "Wow_2",
+        "set": {
+          "@EmojiName": "BHSampleWow",
+          "EmojiID": "@id",
+          "DisplayNameKey": "BHSample_Emoji_DisplayName"
+        }
+      }
+    ],
+    "SpawnBotTypes": [
+      {
+        "copy": "Hawk",
+        "set": {
+          "@SpawnBotName": "BHSampleHawk",
+          "SpawnBotID": "@id",
+          "DisplayNameKey": "BHSample_SpawnBot_DisplayName"
+        }
+      }
+    ],
+    "TrailEffectTypes": [
+      {
+        "copy": "CollectorsSmokeTrail",
+        "set": {
+          "@TrailEffectName": "BHSampleSmoke",
+          "TrailEffectID": "@id",
+          "DisplayNameKey": "BHSample_KOEffect_DisplayName"
+        }
+      }
+    ],
+    "SeasonBorderTypes": [
+      {
+        "copy": "Synthwave",
+        "set": {
+          "@SeasonBorderName": "BHSampleBorder",
+          "SeasonBorderID": "@id",
+          "DisplayNameKey": "BHSample_Border_DisplayName"
+        }
+      }
+    ],
+    "MonikerTypes": [
+      {
+        "copy": "Birthday01",
+        "set": {
+          "@MonikerName": "BHSampleTitle",
+          "MonikerID": "@id",
+          "DisplayNameKey": "BHSample_Title_DisplayName",
+          "InventoryNameKey": "BHSample_Title_DisplayName",
+          "Color": "0x8FE3DA"
+        }
+      }
+    ]
+  }
+}

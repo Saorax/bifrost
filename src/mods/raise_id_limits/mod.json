@@ -1,0 +1,52 @@
+{
+  "name": "raise_id_limits",
+  "description": "Raises the colour scheme ID limit to 1024 and the taunt ID limit to 1023 so mods can add more.",
+  "block": "@document",
+  "patches": [
+    {
+      "class": "block-11/_-o31.class.asasm",
+      "method": "trait:_-Qz",
+      "after": "^pushuint\\s+160$",
+      "insert": [
+        "pop",
+        "pushuint 1024"
+      ]
+    },
+    {
+      "class": "block-11/_-mu.class.asasm",
+      "method": "trait:_-3l",
+      "after": "^pushuint\\s+447$",
+      "insert": [
+        "pop",
+        "pushuint 1023"
+      ]
+    },
+    {
+      "class": "block-11/_-84o.class.asasm",
+      "method": "trait:_-dh",
+      "after": "^pushbyte\\s+127$",
+      "insert": [
+        "pop",
+        "pushuint 1023"
+      ]
+    },
+    {
+      "class": "block-11/_-L2N.class.asasm",
+      "method": "trait:_-hT",
+      "after": "^pushuint\\s+255$",
+      "insert": [
+        "pop",
+        "pushuint 1023"
+      ]
+    },
+    {
+      "class": "block-11/_-U68.class.asasm",
+      "method": "trait:_-H4U",
+      "after": "^pushbyte\\s+63$",
+      "insert": [
+        "pop",
+        "pushuint 1023"
+      ]
+    }
+  ]
+}

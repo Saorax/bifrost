@@ -1,0 +1,38 @@
+<LevelDesc AssetDir="BattleHill" LevelName="BHSampleFlats">
+  <CameraBounds X="-2400" Y="-1800" W="4800" H="2700"/>
+  <SpawnBotBounds X="-800" Y="-1150" W="1600" H="900"/>
+  <Background AssetName="BG_SKCross.jpg" W="2048" H="1151"/>
+  <Platform InstanceName="am_SampleMain" X="-960" Y="-560" Scale="1.05">
+    <Asset AssetName="SK_Large_Plat.png" W="1827" H="746"/>
+  </Platform>
+  <Platform InstanceName="am_SampleTop" X="-420" Y="-930" Scale="0.6">
+    <Asset AssetName="SK_Small_Plat.png" W="1411" H="254"/>
+  </Platform>
+  <HardCollision X="-800" Y1="150" Y2="-400"/>
+  <HardCollision X1="-800" X2="800" Y="-400"/>
+  <HardCollision X="800" Y1="-400" Y2="150"/>
+  <HardCollision X1="-800" X2="800" Y="150"/>
+  <SoftCollision X1="-400" X2="400" Y="-850"/>
+  <Respawn X="-450" Y="-800"/>
+  <Respawn X="450" Y="-800"/>
+  <Respawn X="-150" Y="-1150"/>
+  <Respawn X="150" Y="-1150"/>
+  <Respawn ExpandedInit="true" X="-250" Y="-800"/>
+  <Respawn ExpandedInit="true" X="250" Y="-800"/>
+  <ItemSpawn X="-650" Y="-800" W="400" H="150"/>
+  <ItemSpawn X="250" Y="-800" W="400" H="150"/>
+  <ItemSpawn X="-200" Y="-1100" W="400" H="80"/>
+  <ItemInitSpawn X="0" Y="-700"/>
+  <TeamItemInitSpawn X="-450" Y="-1150"/>
+  <TeamItemInitSpawn X="450" Y="-1150"/>
+  <NavNode NavID="L1" Path="2,A6" X="-800" Y="-440"/>
+  <NavNode NavID="2" Path="L1,3,A6" X="-400" Y="-440"/>
+  <NavNode NavID="3" Path="2,4,A6,A7,A8" X="0" Y="-440"/>
+  <NavNode NavID="4" Path="3,L5,A8" X="400" Y="-440"/>
+  <NavNode NavID="L5" Path="4,A8" X="800" Y="-440"/>
+  <NavNode NavID="A6" Path="L1,2,3,9" X="-600" Y="-780"/>
+  <NavNode NavID="A7" Path="3,9,10" X="0" Y="-780"/>
+  <NavNode NavID="A8" Path="3,4,L5,10" X="600" Y="-780"/>
+  <NavNode NavID="9" Path="10,A6,A7,2,3" X="-300" Y="-890"/>
+  <NavNode NavID="10" Path="9,A7,A8,3,4" X="300" Y="-890"/>
+</LevelDesc>

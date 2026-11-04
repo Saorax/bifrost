@@ -1,0 +1,42 @@
+{
+  "id": "sample-mode",
+  "name": "Sample mode (King of the Hill)",
+  "version": "1.0",
+  "author": "bh-decomp",
+  "description": "Adds King of the Hill to Couch Party and custom rooms. The hill moves every 15 seconds.",
+  "strings": {
+    "English": {
+      "BHSampleMode_Name": "King of the Hill",
+      "BHSampleMode_Desc": "Hold the lit platform to score. The hill moves every 15 seconds.",
+      "BHSampleMode_Default": "King of the Hill"
+    }
+  },
+  "tables": {
+    "ScoringTypes": [
+      {
+        "copy": "COLORPLATFORMS",
+        "set": {
+          "@ScoringName": "BHKINGOFTHEHILL",
+          "@Enabled": "True",
+          "ScoringID": "@id",
+          "DisplayOrder": "210",
+          "DisplayNameKey": "BHSampleMode_Name",
+          "DescriptionKey": "BHSampleMode_Desc",
+          "DefaultGameModeType": "BHKingOfTheHill",
+          "IconName": "a_ScoringIcon_CLIMB"
+        }
+      }
+    ],
+    "GameModeTypes": [
+      {
+        "copy": "DefaultColorPlatforms",
+        "set": {
+          "@GameModeName": "BHKingOfTheHill",
+          "GameModeID": "@id",
+          "DisplayNameKey": "BHSampleMode_Default",
+          "ScoringType": "BHKINGOFTHEHILL"
+        }
+      }
+    ]
+  }
+}

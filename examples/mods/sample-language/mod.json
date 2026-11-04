@@ -1,0 +1,32 @@
+{
+  "id": "sample-language",
+  "name": "Sample language (Pirate)",
+  "version": "1.0",
+  "description": "Adds Pirate, a copy of English with some menu and settings text reworded.",
+  "tables": {
+    "LanguageTypes": [
+      {"copy": "English", "set": {"@LanguageName": "Pirate", "DisplayName": "Pirate", "DnaCode": "en-PI"}}
+    ]
+  },
+  "strings": {
+    "Pirate": {
+      "UI_CURRENT_LANGUAGE": "Pirate",
+      "UI_MainMenu_Play": "Set Sail",
+      "UI_MainMenu_Play_Desc": "Cross blades with scallywags from across the seven seas",
+      "UI_MainMenu_Offline": "Shore Leave",
+      "UI_MainMenu_Offline_Desc": "Brawl on dry land, far from prying spyglasses",
+      "UI_MainMenu_Custom": "Captain's Cabin",
+      "UI_MainMenu_Custom_Desc": "Hoist yer own flag and call yer crew aboard",
+      "UI_MainMenu_Ranked": "Bounty Hunt",
+      "UI_MainMenu_Legends": "Meet the Crew",
+      "UI_Offline_Training": "Cutlass Drills",
+      "UI_Offline_Training_Desc": "Swab the deck with a straw dummy",
+      "UI_Offline_Couch_Party": "Tavern Brawl",
+      "UI_Offline_Couch_Party_Desc": "A free-for-all with yer mates below deck",
+      "UI_System_Settings_Header": "Ship's Articles",
+      "UI_System_Settings_Language": "Tongue",
+      "UI_Back": "Belay",
+      "UI_Confirm": "Aye"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "sample-strings",
+  "name": "Sample strings",
+  "version": "1.0",
+  "description": "Changes the text of the main menu's Offline button.",
+  "strings": {
+    "English": {
+      "UI_MainMenu_Offline": "Offline (sample mod)",
+      "UI_MainMenu_Offline_Desc": "This text comes from the sample content mod in mods\\sample-strings."
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "sample-music",
+  "name": "Sample music",
+  "version": "1.0",
+  "description": "Replaces the menu and map music with two silent tracks. Put your own MP3s in the music folder under the same names.",
+  "music": {
+    "tracks": {
+      "calm": {
+        "file": "music/quiet-a.mp3",
+        "title": "Calm (sample)",
+        "volume": 0.9
+      },
+      "bright": "music/quiet-b.mp3"
+    },
+    "replaces": {
+      "DefaultUI": "calm",
+      "*battle": "bright"
+    }
+  }
+}

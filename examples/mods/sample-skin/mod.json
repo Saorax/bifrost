@@ -1,0 +1,34 @@
+{
+  "id": "sample-skin",
+  "name": "Sample skin",
+  "version": "1.0",
+  "description": "Adds Sample Tealbear, a teal and gold Bödvar skin based on Bear.",
+  "strings": {
+    "English": {
+      "BHSample_Tealbear_DisplayName": "Sample Tealbear (mod)"
+    }
+  },
+  "tables": {
+    "costumeTypes": [
+      {
+        "copy": "Bear",
+        "set": {
+          "CostumeName": "BHSampleTealbear",
+          "CostumeID": "@id",
+          "CostumeIndex": "@id/OwnerHero",
+          "DisplayNameKey": "BHSample_Tealbear_DisplayName",
+          "Description": "A sample skin added by a content mod.",
+          "Body1VL_Define": "0x8FE3DA",
+          "Body1Lt_Define": "0x3FB8AC",
+          "Body1_Define": "0x1A8C82",
+          "Body1Dk_Define": "0x0E5A55",
+          "Hair_Define": "0x0E5A55",
+          "HairDk_Define": "0x073532",
+          "SpecialVL_Define": "0xFFF3C4",
+          "SpecialLt_Define": "0xF2C94C",
+          "Special_Define": "0xD4A017"
+        }
+      }
+    ]
+  }
+}

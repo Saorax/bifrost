@@ -1,0 +1,18 @@
+{
+  "id": "sample-map",
+  "name": "Sample map",
+  "version": "1.0",
+  "description": "Adds Sample Flats, a small map with one main stage and one soft platform, using the art from Plains of Passage.",
+  "tables": {
+    "LevelTypes": [
+      "<LevelType LevelName=\"BHSampleFlats\" DevOnly=\"false\" TestLevel=\"false\"><DisplayName>Sample Flats (mod)</DisplayName><LevelID>@id</LevelID><FileName>Level_Wacky.swf</FileName><AssetName>a_Level_battlehill</AssetName><CrateColorA>0x983677</CrateColorA><CrateColorB>0xD181B7</CrateColorB><LeftKill>800</LeftKill><RightKill>800</RightKill><TopKill>1000</TopKill><BottomKill>850</BottomKill><BGMusic>LevelShovelTheme</BGMusic><ThumbnailPNGFile>battlehill.jpg</ThumbnailPNGFile><BotTint>0</BotTint><BotOffset>0xAFE1FC</BotOffset><BotFraction>0.25</BotFraction></LevelType>"
+    ],
+    "LevelSetTypes": [
+      "<LevelSetType LevelSetName=\"StandardAll\"><LevelTypes>+BHSampleFlats</LevelTypes></LevelSetType>",
+      "<LevelSetType LevelSetName=\"StandardFFA\"><LevelTypes>+BHSampleFlats</LevelTypes></LevelSetType>"
+    ]
+  },
+  "files": [
+    "LevelDesc_BHSampleFlats.xml"
+  ]
+}

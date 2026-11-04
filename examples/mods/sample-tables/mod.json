@@ -1,0 +1,19 @@
+{
+  "id": "sample-tables",
+  "name": "Sample table rows",
+  "version": "1.0",
+  "description": "Adds a teal colour scheme and renames Bödvar on character select.",
+  "strings": {
+    "English": {
+      "BH_SampleTables_ColorName": "Sample Teal"
+    }
+  },
+  "tables": {
+    "ColorSchemeTypes": [
+      "<ColorSchemeType ColorSchemeName=\"BHSampleTeal\"><ColorSchemeID>@id</ColorSchemeID><DefaultUnlocked>FALSE</DefaultUnlocked><DisplayNameKey>BH_SampleTables_ColorName</DisplayNameKey><IconName>a_ColorIcon_Blue</IconName><IconFileName>UI_Icons</IconFileName><OrderID>@id</OrderID><Rarity>M</Rarity><TeamColor>0</TeamColor><BroadcasterEnabled>false</BroadcasterEnabled><ExcludeOpponentTeamColor>TeamBlue1</ExcludeOpponentTeamColor><FallbackOpponentTeamColor>TeamBlue1</FallbackOpponentTeamColor><IndicatorColor>0x37BEAE</IndicatorColor><HairLt_Swap>0xF1DE9D</HairLt_Swap><Hair_Swap>0xD6AE1F</Hair_Swap><HairDk_Swap>0x987B16</HairDk_Swap><Body1VL_Swap>0xA8E6DE</Body1VL_Swap><Body1Lt_Swap>0x69D3C7</Body1Lt_Swap><Body1_Swap>0x37BEAE</Body1_Swap><Body1Dk_Swap>0x27867B</Body1Dk_Swap><Body1VD_Swap>0x195750</Body1VD_Swap><Body1Acc_Swap>0xE7C755</Body1Acc_Swap><Body2VL_Swap>0xB3BEDB</Body2VL_Swap><Body2Lt_Swap>0x7C8FC0</Body2Lt_Swap><Body2_Swap>0x5068A5</Body2_Swap><Body2Dk_Swap>0x384975</Body2Dk_Swap><Body2VD_Swap>0x242F4C</Body2VD_Swap><Body2Acc_Swap>0xE7C755</Body2Acc_Swap><SpecialVL_Swap>0xF1DE9D</SpecialVL_Swap><SpecialLt_Swap>0xE7C755</SpecialLt_Swap><Special_Swap>0xD6AE1F</Special_Swap><SpecialDk_Swap>0x987B16</SpecialDk_Swap><SpecialVD_Swap>0x62500E</SpecialVD_Swap><SpecialAcc_Swap>0xE7C755</SpecialAcc_Swap><ClothVL_Swap>0xA8E6DE</ClothVL_Swap><ClothLt_Swap>0x69D3C7</ClothLt_Swap><Cloth_Swap>0x37BEAE</Cloth_Swap><ClothDk_Swap>0x27867B</ClothDk_Swap><WeaponVL_Swap>0xF1DE9D</WeaponVL_Swap><WeaponLt_Swap>0xE7C755</WeaponLt_Swap><Weapon_Swap>0xD6AE1F</Weapon_Swap><WeaponDk_Swap>0x987B16</WeaponDk_Swap><WeaponAcc_Swap>0x69D3C7</WeaponAcc_Swap></ColorSchemeType>"
+    ],
+    "HeroTypes": [
+      "<HeroType HeroName=\"Viking\"><HeroDisplayName>BÖDVAR (MOD)</HeroDisplayName></HeroType>"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "sample-anim",
+  "name": "Sample animation",
+  "version": "1.0",
+  "description": "Stretches Bödvar's hammer idle animation. Build the .anm from your own game files with tools/make_sample_anim.py and put it in this folder.",
+  "tables": {
+    "MasterFileList": [
+      "<File Stage=\"Anim\" ExcludedPlatforms=\"\" Size=\"1330\" Name=\"mods/sample-anim/Animation_BHSample.anm\" Load=\"\" />"
+    ]
+  }
+}
