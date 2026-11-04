@@ -131,6 +131,23 @@ def marker_file(game: Path) -> Path:
     return port_steam_install.marker_path(game)
 
 
+def files_ok(game: Path, info: dict, product: str) -> None:
+    listed = info.get("game_file_list")
+    if not listed:
+        if info.get("game_files") and info["game_files"] != game_files.fingerprint(game):
+            raise Failed(f"this game's files aren't the ones this {product} release is for: wait for the next "
+                         "release, or verify the game files in Steam")
+        return
+    differ = game_files.differences(game, listed)
+    blocking = [name for name in differ if game_files.core(name)]
+    if blocking:
+        raise Failed(f"this game's code isn't the version this {product} release is for (changed: "
+                     f"{game_files.describe(blocking)}): wait for the next release, or verify the game files in Steam")
+    if differ:
+        print(f"note: not Steam's current files: {game_files.describe(differ)} (a mod, or a skipped Steam update). "
+              "The build doesn't use them; if they look wrong in game, verify the game files in Steam", flush=True)
+
+
 def check(game: Path) -> str:
     swf = game / "BrawlhallaAir.swf"
     marker = marker_file(game)
@@ -141,11 +158,8 @@ def check(game: Path) -> str:
     if sha256(source) != expected_swf():
         raise Failed(f"this game isn't the Brawlhalla {VERSION} this Bifrost is for: update Bifrost, or verify the "
                      "game files in Steam")
-    want = kit_info().get("game_files")
-    if want and game_files.fingerprint(game) != want:
-        raise Failed("Steam changed this game's files since this Bifrost was made: wait for a Bifrost update, or "
-                     "verify the game files in Steam")
-    note = " (Bifrost on the new engine is installed; this rebuilds it)" if marker.exists() else ""
+    files_ok(game, kit_info(), "Bifrost")
+    note =" (Bifrost on the new engine is installed; this rebuilds it)" if marker.exists() else ""
     return f"Brawlhalla {VERSION} found{note}"
 
 
@@ -329,6 +343,7 @@ def install_engine(game: Path, work: Path, server: str | None = None) -> None:
 
 def set_server(game: Path, address: str | None = None) -> str:
     server = json.loads((KIT / "server.json").read_text(encoding="utf-8"))
+    main = {"host": server["host"], "port": server["port"]}
     if address:
         host, _, port = address.rpartition(":")
         server = {"host": host, "port": int(port)}
@@ -337,7 +352,7 @@ def set_server(game: Path, address: str | None = None) -> str:
     cfg = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     if (cfg.get("host"), cfg.get("port")) != (server["host"], server["port"]):
         cfg = {k: v for k, v in cfg.items() if k not in ("token", "account")}
-    cfg.update(host=server["host"], port=server["port"])
+    cfg.update(host=server["host"], port=server["port"], main=main)
     path.write_text(json.dumps(cfg, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     return f"server {server['host']}:{server['port']}"
 
@@ -369,9 +384,7 @@ def check_official(game: Path, layer: Path) -> str:
     info = layer_info(layer)
     if not (game / "BrawlhallaAir.swf").exists():
         raise Failed(f"{game}: no BrawlhallaAir.swf (pick the Brawlhalla folder)")
-    if info.get("game_files") != game_files.fingerprint(game):
-        raise Failed("this game's files aren't the ones this Official release is for: wait for an Official update, "
-                     "or verify the game files in Steam")
+    files_ok(game, info, "Official")
     return f"Brawlhalla {VERSION} found; Official {info.get('version', '?')}"
 
 

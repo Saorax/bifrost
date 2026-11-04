@@ -213,6 +213,7 @@ def build(out: Path, engine: Path, server: str | None = None, release: str | Non
     info = {"release": release or time.strftime("%Y.%m.%d-") + port_commit, "game": VERSION, "air_pin": commit,
             "port_commit": port_commit, "server": f"{host}:{port}", "built": time.strftime("%Y-%m-%d %H:%M:%S"),
             "game_files": game_files.fingerprint(ROOT / "versions" / VERSION),
+            "game_file_list": game_files.listing(ROOT / "versions" / VERSION),
             "size_mb": round(size(out) / 2**20, 1), "seconds": round(time.monotonic() - started)}
     (out / "kit.json").write_text(json.dumps(info, indent=1) + "\n", encoding="utf-8")
     return info

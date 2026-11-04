@@ -3,7 +3,10 @@
     python tools/game_files.py fingerprint DIR    # sha-256 over every .swf and .swz in the install's top folder
     python tools/game_files.py stats DIR          # "size filetime name" lines (the launcher's start check)
 
-a file that Bifrost keeps as ``<name>.bifrost-original`` counts as that original.
+a file that Bifrost keeps as ``<name>.bifrost-original`` counts as that original. a release lists each file's
+sha-256 (``listing``): the game's code and data (``core``: BrawlhallaAir.swf and the .swz files) must match it; another
+listed file that differs (an art or sound .swf a mod or a skipped Steam update left) is only reported, since the build
+never reads those. files the release doesn't list are left out.
 """
 from __future__ import annotations
 
@@ -41,21 +44,43 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-_fingerprints: dict[tuple[str, str], str] = {}
+_listings: dict[tuple[str, str], dict[str, str]] = {}
 
 
-def fingerprint(game: Path) -> str:
+def listing(game: Path) -> dict[str, str]:
     listed = files(game)
     if not listed:
         raise FileNotFoundError(f"{game}: no .swf or .swz files")
     seen = (str(game.resolve()), stats(game))
-    if seen in _fingerprints:
-        return _fingerprints[seen]
-    with ThreadPoolExecutor(4) as pool:
-        sums = list(pool.map(sha256, listed.values()))
-    lines = "".join(f"{name}\t{digest}\n" for name, digest in zip(listed, sums))
-    _fingerprints[seen] = hashlib.sha256(lines.encode("utf-8")).hexdigest()
-    return _fingerprints[seen]
+    if seen not in _listings:
+        with ThreadPoolExecutor(4) as pool:
+            _listings[seen] = dict(zip(listed, pool.map(sha256, listed.values())))
+    return dict(_listings[seen])
+
+
+def fingerprint(game: Path) -> str:
+    lines = "".join(f"{name}\t{digest}\n" for name, digest in listing(game).items())
+    return hashlib.sha256(lines.encode("utf-8")).hexdigest()
+
+
+def differences(game: Path, want: dict[str, str]) -> list[str]:
+    have = {name.lower(): digest for name, digest in listing(game).items()}
+    out = []
+    for name, digest in want.items():
+        found = have.get(name.lower())
+        if found != digest:
+            out.append(name if found else f"{name} (missing)")
+    return out
+
+
+def core(name: str) -> bool:
+    name = name.lower().removesuffix(" (missing)")
+    return name == "brawlhallaair.swf" or name.endswith(".swz")
+
+
+def describe(names: list[str], shown: int = 5) -> str:
+    more = f" and {len(names) - shown} more" if len(names) > shown else ""
+    return ", ".join(names[:shown]) + more
 
 
 def stats(game: Path) -> str:

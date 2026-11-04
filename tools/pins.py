@@ -18,7 +18,10 @@ LAYER_BRANCH = os.environ.get("BIFROST_LAYER_BRANCH") or "main"
 
 
 def head(repo: Path, ref: str) -> str:
-    out = subprocess.run(["git", "-C", str(repo), "rev-parse", "--short=8", ref], capture_output=True, text=True)
+    try:
+        out = subprocess.run(["git", "-C", str(repo), "rev-parse", "--short=8", ref], capture_output=True, text=True)
+    except OSError:
+        return ref
     return out.stdout.strip() if out.returncode == 0 else ref
 
 

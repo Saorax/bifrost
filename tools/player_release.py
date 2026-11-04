@@ -180,6 +180,7 @@ def release_bifrost(a: argparse.Namespace, repo: str | None) -> tuple[str, list[
     symbols = json.loads((player_kit.DEFAULT_OUT / "client" / "symbols" / f"{info['game']}.json").read_text(encoding="utf-8"))
     manifest = {"product": "bifrost", "release": name, "game": info["game"], "swf_sha256": symbols["input_sha256"],
                 "game_files": info.get("game_files") or game_files.fingerprint(ROOT / "versions" / info["game"]),
+                "game_file_list": info.get("game_file_list") or game_files.listing(ROOT / "versions" / info["game"]),
                 "port_commit": info.get("port_commit"), "server": info["server"], **asset(kit),
                 "server_package": asset(server), "built": info["built"]}
     return name, [kit, server], manifest
@@ -197,6 +198,7 @@ def release_official(a: argparse.Namespace, repo: str | None) -> tuple[str, list
     zipped = pack_dir(package, folder / f"official-{name}.zip")
     shutil.rmtree(package)
     manifest = {"product": "official", "release": name, "game": info["game"], "game_files": info["game_files"],
+                "game_file_list": info.get("game_file_list") or game_files.listing(ROOT / "versions" / info["game"]),
                 "port_commit": info["port_commit"], **asset(zipped), "built": info["built"]}
     return name, [zipped], manifest
 
