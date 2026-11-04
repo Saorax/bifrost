@@ -4,14 +4,14 @@
     python tools/player_release.py --product official [--release NAME] [--repo OWNER/NAME] [--publish]
 
 each product has its own version, ``YYYYMMDD-NN<commit>``: the day, that product's release number of the day and its
-source's current commit (Bifrost: this workspace; Official: new-client, or this workspace's while new-client has none).
+source's current commit (Bifrost: this workspace; Official: bh-client, or this workspace's while bh-client has none).
 the repositories are in
 ``tools/release_repos.json`` (``--repo`` overrides); a release's tag is ``<product>-<version>``, so one repository
 can hold both. writes ``build/player-release/<product>-<version>/``:
 
 - bifrost: ``bifrost-<version>.zip`` (the engine kit, ``tools/player_kit.py``, never game code),
   ``bifrost-server-<version>.zip`` (the server at its pin, for the app's Server tab) and ``bifrost.json``.
-- official: ``official-<version>.zip`` (new-client's layer and its two DLLs, ``nc.py package``) and ``official.json``.
+- official: ``official-<version>.zip`` (bh-client's layer and its two DLLs, ``nc.py package``) and ``official.json``.
 
 every manifest names the game files it is for (``tools/game_files.py``): the app refuses to install a product whose
 release doesn't match the player's game. without ``--publish`` nothing is uploaded and ``gh release create`` is printed;
@@ -41,7 +41,7 @@ from tools import game_files, player_kit
 OUT = ROOT / "build" / "player-release"
 REPOS = ROOT / "tools" / "release_repos.json"
 PRODUCTS = ("bifrost", "official")
-NEW_CLIENT = Path("C:/Coding/BRAWLHALLA PROJECTS/new-client")
+NEW_CLIENT = Path("C:/Coding/bh-client")
 
 
 def sha256(path: Path) -> str:

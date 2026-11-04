@@ -7,7 +7,7 @@
 ``install`` makes Bifrost on the new engine from the player's own game on this PC and installs it; each step prints
 ``step n/m: ...`` (the app shows it). the work folder (default ``%LOCALAPPDATA%\\Bifrost\\engine-work``) gets a copy
 of the kit's tools with the toolchain linked in; the game code it makes stays there and in the install. ``--until``
-stops after a step (for checks). ``official`` builds the official-servers game (new-client's layer, ``--layer``: the
+stops after a step (for checks). ``official`` builds the official-servers game (bh-client's layer, ``--layer``: the
 unpacked official release) from the same game and installs it beside Bifrost. in the workspace this file is only the
 source of the kit's copy.
 """
