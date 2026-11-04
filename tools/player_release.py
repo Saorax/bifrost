@@ -74,14 +74,20 @@ def source_dirs(product: str) -> list[Path]:
     return {"bifrost": [Path(pins()["repo"]), ROOT], "official": [NEW_CLIENT, ROOT]}[product]
 
 
+def contents_hash(source: Path) -> str:
+    files = subprocess.run(["git", "-C", str(source), "ls-files", "-z"], capture_output=True)
+    if files.returncode != 0:
+        return "none"
+    h = hashlib.sha256()
+    for name in sorted(n for n in files.stdout.decode("utf-8", "replace").split("\0") if n):
+        path = source / name
+        if path.is_file():
+            h.update(name.encode() + b"\0" + hashlib.sha256(path.read_bytes()).digest())
+    return h.hexdigest()[:12]
+
+
 def sources_key(product: str, server: str | None) -> str:
-    parts = []
-    for source in source_dirs(product):
-        commit = head(source) or "none"
-        diff = subprocess.run(["git", "-C", str(source), "diff", "HEAD", "--binary"], capture_output=True)
-        if diff.returncode == 0 and diff.stdout:
-            commit += "~" + hashlib.sha256(diff.stdout).hexdigest()[:8]
-        parts.append(commit)
+    parts = [contents_hash(source) for source in source_dirs(product)]
     if product == "bifrost":
         parts.append(server or player_kit.default_server())
     return "+".join(parts)
