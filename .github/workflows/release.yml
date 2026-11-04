@@ -24,7 +24,7 @@ jobs:
     runs-on: [self-hosted, windows, brawlhalla]
     steps:
       - name: Build and publish Bifrost
-        shell: pwsh
+        shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
           ENGINE: ${{ vars.BIFROST_ENGINE_DIR || 'C:\Coding\bifrost-engine' }}
