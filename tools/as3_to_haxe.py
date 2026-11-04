@@ -14577,6 +14577,12 @@ def coerce_string_parameter_arguments(span: str) -> str:
                     changed = True
                 if changed:
                     span = span[:call.end()] + ",".join(args) + span[close:]
+            if 0 not in wanted:
+                continue
+            for ref in reversed(list(re.finditer(
+                    rf"(\.(?:map|filter|forEach|some|every)\s*\(\s*){re.escape(needle)}(\s*\))", span))):
+                wrapper = f"function(v:Dynamic):Dynamic return {needle}({AS3_HELPER}.stringParam(v))"
+                span = span[:ref.start()] + ref.group(1) + wrapper + ref.group(2) + span[ref.end():]
     return span
 
 
