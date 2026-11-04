@@ -212,6 +212,7 @@ def decompile(work: Path) -> None:
 
 def convert(work: Path) -> None:
     os.environ["BIFROST_AIR_TREE"] = str(work / "air")
+    os.environ["BIFROST_LAYER_COMMIT"] = (work / "air" / "PIN.txt").read_text(encoding="utf-8").split()[-1]
     staged = [sys.executable, "-u", str(work / "tools" / "port_version_build.py"), "run", "--version", VERSION, "--"]
     run(staged + ["bifrost_build.py", "tree"], work, work / "build.log")
     run(staged + ["bifrost_build.py", "export"], work, work / "build.log")
@@ -371,11 +372,6 @@ def check_official(game: Path, layer: Path) -> str:
     if info.get("game_files") != game_files.fingerprint(game):
         raise Failed("this game's files aren't the ones this Official release is for: wait for an Official update, "
                      "or verify the game files in Steam")
-    kit_commit = kit_info().get("port_commit")
-    need = info.get("port_commit")
-    if need and kit_commit and not (need.startswith(kit_commit) or kit_commit.startswith(need)):
-        raise Failed(f"this Official release needs engine {need}, the kit is {kit_commit}: wait for "
-                     "matching updates")
     return f"Brawlhalla {VERSION} found; Official {info.get('version', '?')}"
 
 
@@ -439,7 +435,7 @@ def install_official(game: Path, work: Path, layer: Path) -> None:
     marker = marker_file(game)
     data = json.loads(marker.read_text(encoding="utf-8"))
     data[OFFICIAL] = {"version": info.get("version", "?"), "game_files": info.get("game_files"),
-                      "installed": time.strftime("%Y-%m-%d %H:%M:%S")}
+                      "kit": kit_info().get("release"), "installed": time.strftime("%Y-%m-%d %H:%M:%S")}
     marker.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
     print(f"Official {info.get('version', '?')} installed in {target}", flush=True)
 
