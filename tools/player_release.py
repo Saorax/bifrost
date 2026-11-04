@@ -70,6 +70,40 @@ def head(repo: Path) -> str | None:
     return out.stdout.strip() if out.returncode == 0 else None
 
 
+def source_dirs(product: str) -> list[Path]:
+    return {"bifrost": [Path(pins()["repo"]), ROOT], "official": [NEW_CLIENT, ROOT]}[product]
+
+
+def sources_key(product: str, server: str | None) -> str:
+    parts = []
+    for source in source_dirs(product):
+        commit = head(source) or "none"
+        diff = subprocess.run(["git", "-C", str(source), "diff", "HEAD", "--binary"], capture_output=True)
+        if diff.returncode == 0 and diff.stdout:
+            commit += "~" + hashlib.sha256(diff.stdout).hexdigest()[:8]
+        parts.append(commit)
+    if product == "bifrost":
+        parts.append(server or player_kit.default_server())
+    return "+".join(parts)
+
+
+def latest_sources(repo: str, product: str) -> tuple[str | None, str | None]:
+    out = subprocess.run(["gh", "release", "list", "--repo", repo, "--limit", "50", "--json", "tagName,createdAt"],
+                         capture_output=True, text=True)
+    if out.returncode != 0:
+        return None, None
+    tags = sorted((r for r in json.loads(out.stdout or "[]") if r["tagName"].startswith(f"{product}-")),
+                  key=lambda r: r["createdAt"], reverse=True)
+    if not tags:
+        return None, None
+    tag = tags[0]["tagName"]
+    view = subprocess.run(["gh", "release", "view", tag, "--repo", repo, "--json", "body"], capture_output=True, text=True)
+    if view.returncode != 0:
+        return tag, None
+    m = re.search(r"^Sources: (\S+)$", json.loads(view.stdout).get("body") or "", re.M)
+    return tag, m.group(1) if m else None
+
+
 def next_release(repo: str | None, product: str, commit: str | None) -> str:
     day = time.strftime("%Y%m%d")
     tags: list[str] = []
@@ -161,14 +195,14 @@ def release_official(a: argparse.Namespace, repo: str | None) -> tuple[str, list
     return name, [zipped], manifest
 
 
-def release_notes(product: str, title: str) -> str:
+def release_notes(product: str, title: str, key: str) -> str:
     sources = {"bifrost": [Path(pins()["repo"]), ROOT], "official": [NEW_CLIENT]}[product]
     lines = []
     for source in sources:
         out = subprocess.run(["git", "-C", str(source), "log", "-1", "--format=%s"], capture_output=True, text=True)
         if out.returncode == 0 and out.stdout.strip():
             lines.append(f"- {out.stdout.strip()}")
-    return title + ("\n\n" + "\n".join(lines) if lines else "")
+    return title + ("\n\n" + "\n".join(lines) if lines else "") + f"\n\nSources: {key}"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -179,8 +213,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-build", action="store_true", help="bifrost: pack the kit already in build/player-kit")
     p.add_argument("--repo", default=None, help="OWNER/NAME (default: tools/release_repos.json)")
     p.add_argument("--publish", action="store_true", help="create the GitHub release")
+    p.add_argument("--force", action="store_true", help="publish even when the sources match the latest release's")
     a = p.parse_args(argv)
     repo = a.repo or repos().get(a.product)
+    key = sources_key(a.product, a.server)
+    if a.publish and repo and not a.force:
+        tag, last = latest_sources(repo, a.product)
+        if last == key:
+            print(f"player_release: the sources match {tag} ({key}); nothing new to release (--force to publish anyway)")
+            return 0
     started = time.monotonic()
     try:
         name, files, manifest = {"bifrost": release_bifrost, "official": release_official}[a.product](a, repo)
@@ -201,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
               f'--notes "{title} {name}"')
         if a.publish:
             out = subprocess.run(["gh", "release", "create", f"{a.product}-{name}", *map(str, files), "--repo", repo,
-                                  "--title", f"{title} {name}", "--notes", release_notes(a.product, f"{title} {name}")])
+                                  "--title", f"{title} {name}", "--notes", release_notes(a.product, f"{title} {name}", key)])
             return out.returncode
     elif a.publish:
         print("player_release: no repository to publish to (tools/release_repos.json or --repo)", file=sys.stderr)
