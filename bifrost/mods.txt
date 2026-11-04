@@ -1,0 +1,9 @@
+# The code mods Bifrost's build registers (bh/mods/<mod>), one per line: the AIR build's release set
+# (C:/Coding/BRAWLHALLA PROJECTS/bifrost/bifrost-air docs/overnight.md: build_as3_game.py --mod ...; no autopilot or test mods).
+# Every mod's code is converted and type-checked either way; this list only picks which register at boot.
+examplescreen
+discordpresence
+perf
+smoothmatch
+lobbyscreen
+optionsscreen

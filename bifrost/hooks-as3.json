@@ -1,0 +1,43 @@
+{
+ "sites": [
+  {"id": "fix-room-header-unknown-region", "op": "insert", "where": "after", "anchor": "^_loc5_ = class_104\\.method_8607\\(",
+   "insert": ["if(_loc5_ == \"UI_Unknown\") { _loc5_ = \"UI_SelectCharacter_Room\"; _loc6_ = null; }"]},
+  {"id": "hook-simulation-rollback", "op": "insert", "where": "before", "anchor": "^_loc4_ = _loc2_ \\?"},
+  {"id": "hook-bot-match-time", "op": "insert", "where": "before", "anchor": "^_loc14_ = _loc16_ \\?"},
+  {"id": "hook-replay-end-match-time", "op": "insert", "where": "before", "anchor": "^_loc8_ = _loc2_ \\?"},
+  {"id": "hook-bot-mode-state", "op": "insert", "where": "before", "anchor": "^return param1;$"},
+  {"id": "hook-mode-rules-class", "op": "insert", "where": "before", "anchor": "^if\\(var_1712 == null\\)$"},
+  {"id": "hook-pause-menu-pausing", "op": "replace", "anchor": "^owner\\.method_4489\\(\\);$",
+   "insert": ["if(Hooks.pauseMenuPausing.fireUntilHandled1(owner))", "{", "   owner.var_13582 = 0;", "}", "else", "{", "   owner.method_4489();", "}"],
+   "imports": ["bh.platform.Hooks"]},
+  {"id": "fix-multikeyboard-read-early-skip", "op": "replace", "anchor": "^method_4674\\(\\);$",
+   "insert": ["if(!RawKeyboards.early)", "{", "   method_4674();", "}"],
+   "imports": ["bh.platform.RawKeyboards"]},
+  {"id": "fix-carry-hit-priority", "op": "wrap", "anchor": "^if\\(_loc5_\\.var_4251\\.var_8950 && !_loc14_\\.var_4251\\.var_8950\\)$",
+   "cond": "HitPriority.related(_loc5_, _loc14_)", "imports": ["bh.platform.HitPriority"]},
+  {"id": "fix-p2p-player-names-legend", "op": "wrap", "anchor": "^if\\(owner\\.var_3595 == 64 && \\(owner\\.var_6244\\.var_6474 == null",
+   "cond": "!P2PSession.active", "imports": ["bh.platform.net.P2PSession"]},
+  {"id": "fix-p2p-player-names-weapon", "op": "wrap", "anchor": "^if\\(_loc11_ != null && owner\\.var_3595 == 64\\)$",
+   "cond": "!P2PSession.active", "imports": ["bh.platform.net.P2PSession"]},
+  {"id": "fix-guild-notice-unfiltered", "op": "insert", "where": "after", "anchor": "^var_11065 = class_406\\.method_3025\\(param1,false\\);$",
+   "insert": ["var_11065 = GuildTexts.notice(var_11065, param1);"], "imports": ["bh.platform.GuildTexts"]}
+ ],
+ "mods": [
+  {"id": "mod-offline_switch-0", "op": "insert", "where": "after", "anchor": "^GameApp\\.startup\\(\\);$",
+   "insert": ["{{_-rm._-kz}} = {{_-rm._-12g}} == null;", "{{_-W57._-b1g}} = true;"]},
+  {"id": "mod-offline_switch-1", "where": "start",
+   "insert": ["if({{_-rm._-kz}}) return;"]},
+  {"id": "mod-offline_switch-2", "where": "start",
+   "insert": ["if({{_-W57._-b1g}}) return false;"]}
+ ],
+ "layer": [
+  {"id": "port-p2p-peer-guard", "file": "bh/platform/net/P2PSession.as", "where": "after",
+   "anchor": "^peer\\.addresses = addresses;$",
+   "insert": ["for each(var guardAddress:String in addresses) NetGuard.allowPeer(guardAddress,port);"],
+   "imports": ["port.runtime.net.NetGuard"]},
+  {"id": "port-p2p-reply-guard", "file": "bh/platform/net/P2PSession.as", "where": "after",
+   "anchor": "^receivedCount\\+\\+;$",
+   "insert": ["if(srcAddress != null) NetGuard.allowPeer(srcAddress,srcPort);"],
+   "imports": ["port.runtime.net.NetGuard"]}
+ ]
+}

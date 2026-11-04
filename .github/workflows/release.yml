@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    branches: [engine]
+    paths:
+      - "port/**"
+      - "tools/**"
+      - "bifrost/**"
+      - "client/**"
+      - "src/**"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bifrost-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: [self-hosted, windows, brawlhalla]
+    steps:
+      - name: Build and publish Bifrost
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ENGINE: ${{ vars.BIFROST_ENGINE_DIR || 'C:\Coding\bifrost-engine' }}
+          SERVER: ${{ vars.BIFROST_SERVER }}
+        run: |
+          Set-Location $env:ENGINE
+          $server = @()
+          if ($env:SERVER) { $server = @("--server", $env:SERVER) }
+          python tools/player_release.py --product bifrost --publish --repo ${{ github.repository }} @server
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

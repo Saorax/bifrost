@@ -1,0 +1,966 @@
+{
+ "schema_version": 1,
+ "game_version": "11.00",
+ "aliases": [
+  {
+   "renamed": "class_263",
+   "original": "_-h33",
+   "alias": "ArchiveFile",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_263.var_7576",
+   "original": "_-h33._-T2E",
+   "alias": "fileType",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_263.var_9283",
+   "original": "_-h33._-E1y",
+   "alias": "loadSet",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_331",
+   "original": "_-F1m",
+   "alias": "ArchiveLoader",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_331.method_1776",
+   "original": "_-F1m._-n1w",
+   "alias": "handleLoadedFile",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_331.method_2586",
+   "original": "_-F1m._-13I",
+   "alias": "registerWrappedTable",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_331.method_4721",
+   "original": "_-F1m._-3e",
+   "alias": "parseTable",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_331.method_7164",
+   "original": "_-F1m._-w4S",
+   "alias": "setLoadSets",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_331.method_7931",
+   "original": "_-F1m._-D4Y",
+   "alias": "tickLoading",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_331.method_810",
+   "original": "_-F1m._-u28",
+   "alias": "isLoadSetLoaded",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_331.method_8965",
+   "original": "_-F1m._-M46",
+   "alias": "registerXmlTable",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_331.var_10562",
+   "original": "_-F1m._-G4B",
+   "alias": "wrappedTableParsers",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_331.var_267",
+   "original": "_-F1m._-21D",
+   "alias": "loadedSetCount",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_331.var_34",
+   "original": "_-F1m._-n3A",
+   "alias": "loadSets",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_331.var_5488",
+   "original": "_-F1m._-r3u",
+   "alias": "xmlTableParsers",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_753",
+   "original": "_-i1j",
+   "alias": "Xml",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_753.method_3180",
+   "original": "_-i1j._-T3j",
+   "alias": "createDocument",
+   "kind": "method"
+  },
+  {
+   "renamed": "Main.var_14434",
+   "original": "Main._-eU",
+   "alias": "diagnosticLog",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_122",
+   "original": "_-o1b",
+   "alias": "DiagnosticLog",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_367",
+   "original": "_-81b",
+   "alias": "SavedData",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_367.method_1157",
+   "original": "_-81b._-Uc",
+   "alias": "setUint",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_1255",
+   "original": "_-81b._-33U",
+   "alias": "setNumber",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_2892",
+   "original": "_-81b._-y1p",
+   "alias": "setInt",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_351",
+   "original": "_-81b._-05v",
+   "alias": "setBool",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_3917",
+   "original": "_-81b._-H4W",
+   "alias": "getUint",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_462",
+   "original": "_-81b._-K4b",
+   "alias": "setArray",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_5199",
+   "original": "_-81b._-13m",
+   "alias": "detach",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_6813",
+   "original": "_-81b._-u3f",
+   "alias": "getBool",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_729",
+   "original": "_-81b._-73G",
+   "alias": "setBytes",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_8054",
+   "original": "_-81b._-Be",
+   "alias": "attach",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.method_968",
+   "original": "_-81b._-pe",
+   "alias": "setString",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_367.var_2913",
+   "original": "_-81b._-n1x",
+   "alias": "store",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_42",
+   "original": "_-i2H",
+   "alias": "GameApp",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_42.method_2392",
+   "original": "_-i2H._-M5d",
+   "alias": "startup",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_42.method_2620",
+   "original": "_-i2H._-034",
+   "alias": "startMain",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_42.method_3263",
+   "original": "_-i2H._-9h",
+   "alias": "onBootFrame",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_42.method_4951",
+   "original": "_-i2H._-U4F",
+   "alias": "registerDataTables",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_42.method_5910",
+   "original": "_-i2H._-E3p",
+   "alias": "onInvoke",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_42.method_9037",
+   "original": "_-i2H._-U5r",
+   "alias": "onStageResize",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_42.method_937",
+   "original": "_-i2H._-74Y",
+   "alias": "loadPreferences",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_42.name_2",
+   "original": "_-i2H._-F6W",
+   "alias": "main",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_42.var_12465",
+   "original": "_-i2H._-347",
+   "alias": "windowsExtension",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_42.var_13008",
+   "original": "_-i2H._-n2e",
+   "alias": "isMac",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_42.var_15378",
+   "original": "_-i2H._-P6C",
+   "alias": "mainInstance",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_42.var_5002",
+   "original": "_-i2H._-M3Y",
+   "alias": "gameInput",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_42.var_8490",
+   "original": "_-i2H._-H6Z",
+   "alias": "bootLoadSet",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_42.var_8571",
+   "original": "_-i2H._-C2K",
+   "alias": "savedGameData",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_42.var_947",
+   "original": "_-i2H._-o1A",
+   "alias": "desktopExtension",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_759",
+   "original": "_-y2E",
+   "alias": "BootDocument",
+   "kind": "class"
+  },
+  {
+   "renamed": "Main.var_9661",
+   "original": "Main._-1P",
+   "alias": "useMultiKeyboard",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_151.method_1246",
+   "original": "_-h3U._-u3y",
+   "alias": "onKeyDown",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_1363",
+   "original": "_-h3U._-u21",
+   "alias": "setupKeyboardBindings",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_3122",
+   "original": "_-h3U._-51U",
+   "alias": "onDeviceRemoved",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_4347",
+   "original": "_-h3U._-s9",
+   "alias": "onDeviceAdded",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_4401",
+   "original": "_-h3U._-w4V",
+   "alias": "setupInput",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_4616",
+   "original": "_-h3U._-d5E",
+   "alias": "onKeyUp",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.name_2",
+   "original": "_-h3U._-F6W",
+   "alias": "main",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_151.var_15136",
+   "original": "_-h3U._-J4p",
+   "alias": "keybindsStore",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_238.method_5923",
+   "original": "_-X4U._-G4F",
+   "alias": "bindKey",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_92",
+   "original": "_-q3v",
+   "alias": "ControllerMappingType",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_93",
+   "original": "_-J34",
+   "alias": "ControllerType",
+   "kind": "class"
+  },
+  {
+   "renamed": "Main.method_117",
+   "original": "Main._-LD",
+   "alias": "OnExit",
+   "kind": "method"
+  },
+  {
+   "renamed": "Main.method_162",
+   "original": "Main._-r1x",
+   "alias": "onDeactivate",
+   "kind": "method"
+  },
+  {
+   "renamed": "Main.method_5291",
+   "original": "Main._-X2P",
+   "alias": "tickGame",
+   "kind": "method"
+  },
+  {
+   "renamed": "Main.method_7010",
+   "original": "Main._-7",
+   "alias": "onEnterFrame",
+   "kind": "method"
+  },
+  {
+   "renamed": "Main.method_9135",
+   "original": "Main._-y2W",
+   "alias": "onActivate",
+   "kind": "method"
+  },
+  {
+   "renamed": "Main.var_10563",
+   "original": "Main._-e34",
+   "alias": "isLoading",
+   "kind": "field"
+  },
+  {
+   "renamed": "Main.var_13458",
+   "original": "Main._-R2f",
+   "alias": "game",
+   "kind": "field"
+  },
+  {
+   "renamed": "Main.var_413",
+   "original": "Main._-E3S",
+   "alias": "isExiting",
+   "kind": "field"
+  },
+  {
+   "renamed": "Main.var_8086",
+   "original": "Main._-z2",
+   "alias": "targetFrameRate",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_151",
+   "original": "_-h3U",
+   "alias": "GameCore",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_151.method_3305",
+   "original": "_-h3U._-L5y",
+   "alias": "tick",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_8690",
+   "original": "_-h3U._-x53",
+   "alias": "setGameState",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.var_8592",
+   "original": "_-h3U._-uE",
+   "alias": "gameState",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_28",
+   "original": "_-z4o",
+   "alias": "GameModeState",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_72",
+   "original": "_-d12",
+   "alias": "ClientManager",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_72.method_1974",
+   "original": "_-d12._-y1i",
+   "alias": "TickClientManager",
+   "kind": "method"
+  },
+  {
+   "renamed": "LinkUpdater.method_1353",
+   "original": "LinkUpdater._-N6X",
+   "alias": "dispatchPacket",
+   "kind": "method"
+  },
+  {
+   "renamed": "LinkUpdater.method_4219",
+   "original": "LinkUpdater._-639",
+   "alias": "pollIncomingPackets",
+   "kind": "method"
+  },
+  {
+   "renamed": "LinkUpdater.var_1682",
+   "original": "LinkUpdater._-74U",
+   "alias": "packetHandlers",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_124",
+   "original": "_-65V",
+   "alias": "DnaTelemetry",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_124.var_9354",
+   "original": "_-65V._-12T",
+   "alias": "dnaDisabled",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_151.method_1029",
+   "original": "_-h3U._-L4y",
+   "alias": "connectToGameServer",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_2421",
+   "original": "_-h3U._-23V",
+   "alias": "sendToGameServer",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_3411",
+   "original": "_-h3U._-B5N",
+   "alias": "connectToServer",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_4046",
+   "original": "_-h3U._-B2y",
+   "alias": "disconnectFromGameServer",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_4262",
+   "original": "_-h3U._-T4S",
+   "alias": "sendToServer",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_4812",
+   "original": "_-h3U._-y3b",
+   "alias": "disconnectFromServer",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_5148",
+   "original": "_-h3U._-f3H",
+   "alias": "sendUdpPing",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_5218",
+   "original": "_-h3U._-c1W",
+   "alias": "processUdpPackets",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_5470",
+   "original": "_-h3U._-k4g",
+   "alias": "handleDnaPacket",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_5690",
+   "original": "_-h3U._-D1y",
+   "alias": "requestReconnect",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.method_7746",
+   "original": "_-h3U._-Cd",
+   "alias": "onServerConnected",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_151.var_5101",
+   "original": "_-h3U._-P2u",
+   "alias": "udpConnection",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_151.var_6754",
+   "original": "_-h3U._-618",
+   "alias": "serverConnection",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_151.var_6937",
+   "original": "_-h3U._-YX",
+   "alias": "gameServerConnection",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_151.var_7149",
+   "original": "_-h3U._-m17",
+   "alias": "linkUpdater",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_204",
+   "original": "_-vc",
+   "alias": "HttpCall",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_204.method_3641",
+   "original": "_-vc._-96R",
+   "alias": "request",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_294",
+   "original": "_-oV",
+   "alias": "NetPacket",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_294.method_3564",
+   "original": "_-oV._-t4F",
+   "alias": "readString",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_294.method_6198",
+   "original": "_-oV._-X2z",
+   "alias": "writeString",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_294.method_8303",
+   "original": "_-oV._-33z",
+   "alias": "readUint",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_294.method_8513",
+   "original": "_-oV._-B6d",
+   "alias": "writeUint",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_295",
+   "original": "_-Lr",
+   "alias": "NetPacketPool",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_30",
+   "original": "_-Lg",
+   "alias": "BitStream",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_30.method_4073",
+   "original": "_-Lg._-b5p",
+   "alias": "writeBits",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_30.method_5621",
+   "original": "_-Lg._-C4y",
+   "alias": "readBits",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_315",
+   "original": "_-hO",
+   "alias": "ApiStatusFeed",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_315.var_3011",
+   "original": "_-hO._-O3y",
+   "alias": "statusUrl",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_42.var_11300",
+   "original": "_-i2H._-WJ",
+   "alias": "forceOffline",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_680",
+   "original": "_-H5v",
+   "alias": "UdpConnection",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_680.method_8491",
+   "original": "_-H5v._-l3Q",
+   "alias": "hasTimedOut",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_680.method_8673",
+   "original": "_-H5v._-J5q",
+   "alias": "queueReliable",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_680.var_10223",
+   "original": "_-H5v._-E5r",
+   "alias": "useNetworkNext",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_90",
+   "original": "_-16c",
+   "alias": "TcpConnection",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_90.method_2612",
+   "original": "_-16c._-I1N",
+   "alias": "sendPacket",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_90.method_6810",
+   "original": "_-16c._-I2T",
+   "alias": "isConnected",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_90.method_7116",
+   "original": "_-16c._-44Z",
+   "alias": "readPacket",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_205",
+   "original": "_-E6N",
+   "alias": "ScreenBase",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_205.method_2451",
+   "original": "_-E6N._-v2S",
+   "alias": "createClip",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_205.method_6214",
+   "original": "_-E6N._-TH",
+   "alias": "setFocus",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_205.method_7465",
+   "original": "_-E6N._-If",
+   "alias": "activate",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_205.method_8421",
+   "original": "_-E6N._-L2o",
+   "alias": "getPreviousFocusedScreen",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_205.method_8590",
+   "original": "_-E6N._-36w",
+   "alias": "restorePreviousFocus",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_205.method_8641",
+   "original": "_-E6N._-P1v",
+   "alias": "addLocalizedText",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_205.var_10597",
+   "original": "_-E6N._-S67",
+   "alias": "localizedTexts",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_10827",
+   "original": "_-E6N._-01M",
+   "alias": "previousFocusedScreen",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_11008",
+   "original": "_-E6N._-u3c",
+   "alias": "isActive",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_12089",
+   "original": "_-E6N._-R5o",
+   "alias": "uiType",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_12224",
+   "original": "_-E6N._-cE",
+   "alias": "clipLibrary",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_15436",
+   "original": "_-E6N._-A6T",
+   "alias": "focusedScreen",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_15628",
+   "original": "_-E6N._-71F",
+   "alias": "panelClip",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_1932",
+   "original": "_-E6N._-N1k",
+   "alias": "owner",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_2856",
+   "original": "_-E6N._-v3s",
+   "alias": "panelName",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_4396",
+   "original": "_-E6N._-n2n",
+   "alias": "registrationIndex",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_205.var_8180",
+   "original": "_-E6N._-HR",
+   "alias": "clipName",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_241",
+   "original": "_-S5t",
+   "alias": "Localization",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_481",
+   "original": "_-qO",
+   "alias": "ScreenMainMenu",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_481.method_1612",
+   "original": "_-qO._-15K",
+   "alias": "onButtonClick",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_481.method_1923",
+   "original": "_-qO._-8p",
+   "alias": "handleMenuInput",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_481.method_5308",
+   "original": "_-qO._-p5G",
+   "alias": "rebuildButtons",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_481.method_8805",
+   "original": "_-qO._-32Y",
+   "alias": "addHotkeyLabel",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_481.var_15120",
+   "original": "_-qO._-c2z",
+   "alias": "lastClickedButton",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_481.var_3570",
+   "original": "_-qO._-rx",
+   "alias": "buttons",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_482",
+   "original": "_-4p",
+   "alias": "ScreenManager",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_482.method_1481",
+   "original": "_-4p._-S3y",
+   "alias": "addActiveScreen",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_482.method_2027",
+   "original": "_-4p._-Xq",
+   "alias": "findScreenBelow",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_482.method_7148",
+   "original": "_-4p._-d1S",
+   "alias": "registerScreen",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_482.method_8081",
+   "original": "_-4p._-545",
+   "alias": "removeActiveScreen",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_482.method_8311",
+   "original": "_-4p._-q3X",
+   "alias": "compareScreens",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_482.var_13067",
+   "original": "_-4p._-o3v",
+   "alias": "levelSelectScreen",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_482.var_15048",
+   "original": "_-4p._-83o",
+   "alias": "activeScreenCount",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_482.var_3785",
+   "original": "_-4p._-Bn",
+   "alias": "activeScreens",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_482.var_8634",
+   "original": "_-4p._-h5K",
+   "alias": "allScreens",
+   "kind": "field"
+  },
+  {
+   "renamed": "class_517",
+   "original": "_-e2j",
+   "alias": "ScreenPopUpLegal",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_710",
+   "original": "_-b3i",
+   "alias": "LocalizedText",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_711.method_1931",
+   "original": "_-R5g._-F25",
+   "alias": "createUiClip",
+   "kind": "method"
+  },
+  {
+   "renamed": "class_720",
+   "original": "_-d2",
+   "alias": "UiClip",
+   "kind": "class"
+  },
+  {
+   "renamed": "class_720.var_2618",
+   "original": "_-d2._-j19",
+   "alias": "clip",
+   "kind": "field"
+  }
+ ]
+}
