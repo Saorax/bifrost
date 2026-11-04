@@ -452,6 +452,7 @@ def install(game: Path, source: Path, owner_folder: bool = False, engine_at: Pat
         shutil.copy2(new, engine / "bin" / "vulkan" / VULKAN_EXE)
     os.replace(new, game / EXE)
     history = [h for h in marker.get("stub_history", []) + [marker.get("stub_sha256")] if h][-10:]
+    marker.pop("original", None)
     marker.update({"stub_sha256": stub_hash, "stub_history": history, "discord_bridge": True, "icon": icon,
                    "engine_from": str(source), "installed": time.strftime("%Y-%m-%d %H:%M:%S"),
                    "version": bifrost_export_version(source)})
@@ -495,9 +496,32 @@ def restore_launcher(game: Path, owner_folder: bool = False) -> str | None:
         shutil.copy2(new, vulkan / VULKAN_EXE)
     os.replace(new, game / EXE)
     history = [h for h in marker.get("stub_history", []) + [marker.get("stub_sha256")] if h][-10:]
+    chosen = marker.pop("original", None)
     marker.update({"stub_sha256": stub_hash, "stub_history": history, "icon": icon})
     marker_path(game, engine).write_text(json.dumps(marker, indent=1) + "\n", encoding="utf-8")
+    if chosen:
+        return f"{EXE} is Bifrost's launcher again"
     return f"{EXE} wasn't Bifrost's launcher any more (Steam or another program replaced it): put it back"
+
+
+def original_launcher(game: Path, owner_folder: bool = False) -> str:
+    guard(game, owner_folder)
+    if not installed(game):
+        raise InstallError(f"{game}: not installed (no {MARKER})")
+    engine = engine_dir(game)
+    settle(game, engine)
+    marker = read_marker(game, engine)
+    backup = backup_path(game, engine)
+    current = sha256(game / EXE)
+    if current == marker.get("stub_sha256") or current in marker.get("stub_history", []):
+        if not backup.exists() or sha256(backup) != marker.get("original_sha256"):
+            raise InstallError(f"{BACKUP} is missing or changed: verify the game files in Steam instead")
+        if outside(game, engine):
+            remember(engine)
+        shutil.copy2(backup, game / EXE)
+    marker["original"] = True
+    marker_path(game, engine).write_text(json.dumps(marker, indent=1) + "\n", encoding="utf-8")
+    return f"{EXE} is Steam's own launcher again; Bifrost stays built in {engine}"
 
 
 def uninstall(game: Path, purge: bool = False, owner_folder: bool = False) -> str:

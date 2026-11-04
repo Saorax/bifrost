@@ -516,7 +516,7 @@ def install(game: Path, work: Path, until: str | None, start: str = "check", ser
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("action", choices=("check", "install", "uninstall", "clean", "official", "uninstall-official",
-                                      "move-engine"))
+                                      "move-engine", "original", "launcher"))
     p.add_argument("--game", type=Path, required=True)
     p.add_argument("--work", type=Path, default=None)
     p.add_argument("--until", choices=STEPS, default=None)
@@ -542,6 +542,17 @@ def main(argv: list[str] | None = None) -> int:
             if a.to is None:
                 raise Failed("move-engine needs --to (the engine folder's new place)")
             move_engine(a.game, (a.work or default_work()).resolve(), a.to.resolve())
+        elif a.action in ("original", "launcher"):
+            os.environ["BIFROST_LAUNCHER_DIR"] = str(KIT / "launcher")
+            work = (a.work or default_work()).resolve()
+            steam = tools_module(work if (work / "tools").exists() else KIT, "port_steam_install")
+            try:
+                if a.action == "original":
+                    print(steam.original_launcher(a.game), flush=True)
+                else:
+                    print(steam.restore_launcher(a.game) or "Brawlhalla.exe is already Bifrost's launcher", flush=True)
+            except steam.InstallError as e:
+                raise Failed(str(e))
         elif a.action == "clean":
             remove_tree((a.work or default_work()).resolve())
             print("work folder removed", flush=True)
