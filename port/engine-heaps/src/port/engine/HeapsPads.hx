@@ -7,18 +7,20 @@ class HeapsPads {
 		"RIGHT_STICK", "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT"];
 	static final AXES = ["LEFT_X", "LEFT_Y", "RIGHT_X", "RIGHT_Y", "TRIGGER_LEFT", "TRIGGER_RIGHT"];
 
-	static var pads:Array<{pad:hxd.Pad, handle:PadHandle, last:Array<Float>}> = [];
+	static var pads:Array<{pad:hxd.Pad, handle:PadHandle, last:Array<Float>, changedAt:Float}> = [];
 
 	public static function start(connected:(pad:PadHandle, announce:Bool) -> Void):Void {
 		var starting = true;
+		flash.ui.GameInputDevice.onRead = function() {
+			if (InputTiming.waitingForRead) InputTiming.gameRead(haxe.Timer.stamp());
+		};
 		hxd.Pad.wait(function(pad) {
 			var handle = new PadHandle(pad.index, pad.name);
-			var entry = {pad: pad, handle: handle, last: [for (_ in 0...BUTTONS.length + AXES.length) 0.0]};
+			var entry = {pad: pad, handle: handle, last: [for (_ in 0...BUTTONS.length + AXES.length) 0.0], changedAt: -1.0};
 			pads.push(entry);
-			if (WindowInput.logInput)
-				BootLog.log("input: pad " + pad.index + " connected" + (starting ? " (at start)" : "") + ": " + pad.name);
+			BootLog.log("input: pad " + pad.index + " connected" + (starting ? " (at start)" : "") + ": " + pad.name);
 			pad.onDisconnect = function() {
-				if (WindowInput.logInput) BootLog.log("input: pad " + pad.index + " disconnected: " + pad.name);
+				BootLog.log("input: pad " + pad.index + " disconnected: " + pad.name);
 				pads.remove(entry);
 				handle.onDisconnect();
 			};
@@ -61,10 +63,12 @@ class HeapsPads {
 	public static function poll():Void {
 		for (entry in pads.copy()) {
 			var pad = entry.pad, config = entry.pad.config;
+			var changed = false;
 			for (i in 0...BUTTONS.length) {
 				var at = index(config, BUTTONS[i]);
 				var down = at >= 0 && pad.buttons[at] == true ? 1.0 : 0.0;
 				if (down != entry.last[i]) {
+					changed = true;
 					entry.last[i] = down;
 					if (WindowInput.logInput)
 						BootLog.log("input: pad " + pad.index + " " + BUTTONS[i] + (down == 1 ? " down" : " up"));
@@ -78,6 +82,7 @@ class HeapsPads {
 				if (AXES[j] == "LEFT_Y" || AXES[j] == "RIGHT_Y") value = -value;
 				var k = BUTTONS.length + j;
 				if (value != entry.last[k]) {
+					changed = true;
 					var before = entry.last[k];
 					if (WindowInput.logInput && side(value) != side(before))
 						BootLog.log("input: pad " + pad.index + " " + AXES[j] + " " + (Math.round(value * 100) / 100));
@@ -85,6 +90,7 @@ class HeapsPads {
 					entry.handle.onAxis(AXES[j], value);
 				}
 			}
+			if (changed) entry.changedAt = InputTiming.padChanged(entry.changedAt, pad.name, haxe.Timer.stamp());
 		}
 	}
 }

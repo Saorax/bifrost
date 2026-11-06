@@ -317,6 +317,12 @@ HEAPS_LIBRARIES = {"heaps": "lib/heaps", "format": "lib/format", "hldx": "lib/hl
                    "hlopenal": "lib/hlopenal"}
 
 
+def drop_patched_platform_files(engine: Path) -> None:
+    patched = engine / "lib" / "heaps-patched"
+    for file in patched.rglob("*.hl.hx"):
+        (engine / "lib" / "heaps" / file.relative_to(patched)).unlink(missing_ok=True)
+
+
 def copy_heaps_engine(engine: Path) -> int:
     from tools import port_heaps, port_heaps_stubs
     rc = port_heaps_stubs.stubs(True)
@@ -334,6 +340,7 @@ def copy_heaps_engine(engine: Path) -> int:
             for folder in (source, source.parent, source.parent.parent):
                 if (folder / extra).exists() and not (engine / target / extra).exists():
                     shutil.copy2(folder / extra, engine / target / extra)
+    drop_patched_platform_files(engine)
     haxe_dir = port_haxe_compile.HAXE.parent
     if not (engine / "tools" / "haxe" / "haxe.exe").exists():
         shutil.copytree(haxe_dir, engine / "tools" / "haxe", dirs_exist_ok=True)

@@ -90,6 +90,16 @@ class WindowInput {
 	}
 
 	function handle(e:hxd.Event):Void {
+		if (e.kind == EKeyDown && repeatOf != e.keyCode) InputTiming.keyDown(haxe.Timer.stamp());
+		try {
+			dispatch(e);
+		} catch (error:Dynamic) {
+			if (FrameLoop.onError == null) throw error;
+			FrameLoop.onError(error, haxe.CallStack.toString(haxe.CallStack.exceptionStack()), "window input");
+		}
+	}
+
+	function dispatch(e:hxd.Event):Void {
 		flash.display.DisplayObject.__pointerX = e.relX;
 		flash.display.DisplayObject.__pointerY = e.relY;
 		var ctrl = held & 1 != 0 || hxd.Key.isDown(hxd.Key.CTRL);

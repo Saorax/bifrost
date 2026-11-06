@@ -35,11 +35,19 @@ class MovieClip extends flash.display.Sprite {
 	}
 
 	public function gotoAndPlay(frame:Any, ?scene:String):Void {
-		if (__timeline != null) __timeline.__gotoAndPlay(frame, scene);
+		if (__timeline != null) __timeline.__gotoAndPlay(__frameReference(frame), scene);
 	}
 
 	public function gotoAndStop(frame:Any, ?scene:String):Void {
-		if (__timeline != null) __timeline.__gotoAndStop(frame, scene);
+		if (__timeline != null) __timeline.__gotoAndStop(__frameReference(frame), scene);
+	}
+
+	@:noCompletion function __frameReference(frame:Any):Any {
+		if (!(frame is String)) return frame;
+		var label:String = cast frame;
+		for (known in __timeline.__currentLabels) if (known.name == label) return frame;
+		var number = Std.parseInt(label);
+		return number != null && Std.string(number) == label ? number : frame;
 	}
 
 	public function nextFrame():Void {

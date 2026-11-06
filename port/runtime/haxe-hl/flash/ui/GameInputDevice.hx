@@ -99,6 +99,8 @@ class GameInputDevice extends openfl.events.EventDispatcher {
 
     static var virtualPads = 0;
 
+    public static var onRead:() -> Void = null;
+
     public var samplesRead(default, null):Int = 0;
 
     function get_numControls():Int return controls.length;
@@ -143,6 +145,7 @@ class GameInputDevice extends openfl.events.EventDispatcher {
     public function getCachedSamples(data:openfl.utils.ByteArray, append:Bool = false):Int {
         if (cachedIds == null || data == null) return 0;
         samplesRead++;
+        if (onRead != null) onRead();
         record();
         var start = append ? data.length : 0;
         if (!append) data.length = 0;

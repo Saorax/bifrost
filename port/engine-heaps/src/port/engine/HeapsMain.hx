@@ -565,6 +565,10 @@ class HeapsMain extends hxd.App {
 
 	function presentCap():Float {
 		if (!hxd.Window.getInstance().vsync) return stage.frameRate;
+		return refreshHz();
+	}
+
+	function refreshHz():Int {
 		if (displayHz <= 0) displayHz = try {
 			var mode = hxd.Window.getInstance().getCurrentDisplaySetting();
 			mode != null && mode.framerate > 0 ? mode.framerate : 60;
@@ -574,6 +578,7 @@ class HeapsMain extends hxd.App {
 
 	override function update(dt:Float):Void {
 		var now = haxe.Timer.stamp();
+		if (lastTickAt >= 0) InputTiming.presented(now - lastTickAt, now);
 		if (lastTickAt >= 0) fastTicks = now - lastTickAt < 0.001 ? fastTicks + 1 : 0;
 		var due = !pacing || pacer.due(now, stage.frameRate);
 		if (!due && idleThrottle && pacing) {
@@ -661,6 +666,7 @@ class HeapsMain extends hxd.App {
 		var now = haxe.Timer.stamp();
 		logLongGap(now);
 		var window = hxd.Window.getInstance();
+		InputTiming.frame(now, window.vsync);
 		if (windowInput != null) windowInput.flush();
 		HeapsPads.poll();
 		var rasterS = DisplayRenderer.rasterSeconds, rasterN = DisplayRenderer.rasters;
@@ -690,6 +696,7 @@ class HeapsMain extends hxd.App {
 		keepPresented(flash.display3D.Context3D.presents != presentsBefore);
 		var gameDone = haxe.Timer.stamp();
 		if (display != null) display.render(stage);
+		InputTiming.rendered();
 		gapFrameOwn = haxe.Timer.stamp() - now;
 		bootTimeline(now, gameDone - now, haxe.Timer.stamp() - gameDone);
 		if (longFrameMs > 0) {
@@ -719,6 +726,8 @@ class HeapsMain extends hxd.App {
 		if (++frames == 1) {
 			firstFrameAt = now;
 			log("boot: first frame (GPU driver " + (h3d.Engine.getCurrent() == null ? "none" : h3d.Engine.getCurrent().driver.getDriverName(true)) + "; adapter " + GpuAdapter.describe() + ")");
+			log("display: renderer " + Display.renderer + ", mode " + Display.effectiveMode() + ", vsync " + (window.vsync ? "on" : "off")
+				+ ", refresh " + refreshHz() + " Hz");
 		} else if (frames == 601) {
 			log("boot: 600 frames in " + Std.int((now - firstFrameAt) * 1000) + " ms at frameRate " + stage.frameRate);
 			log(progress());
