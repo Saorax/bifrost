@@ -28,7 +28,7 @@ if str(KIT) not in sys.path:
     sys.path.insert(0, str(KIT))
 from tools import game_files
 
-VERSION = "11.00"
+VERSION = "11.00.49"
 STEPS = ["check", "prepare", "decompile", "convert", "assemble", "build", "install"]
 OFFICIAL = "official"
 
@@ -233,7 +233,7 @@ def convert(work: Path) -> None:
 
 
 ENGINE_LINKED = ("src", "runtime", "lib", "tools")
-STORAGE = Path("BhPort-" + VERSION) / "Documents" / "Bifrost"
+STORAGE = Path("BhPort-" + ".".join(VERSION.split(".")[:2])) / "Documents" / "Bifrost"
 
 
 def tools_module(work: Path, name: str):

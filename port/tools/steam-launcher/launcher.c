@@ -1,7 +1,11 @@
+#define COBJMACROS
 #include <windows.h>
 #include <shellapi.h>
+#include <d3d11.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define RENDERER_FAILED 0x0BAD3D11u
 
 int bifrost_discord_bridge(int argc, wchar_t **argv);
 
@@ -206,6 +210,111 @@ static void save_renderer(const wchar_t *storage, const char *value)
     CloseHandle(f);
 }
 
+static int renderer_bit(const wchar_t *name)
+{
+    if (lstrcmpW(name, L"dx11") == 0) return 1;
+    if (lstrcmpW(name, L"vulkan") == 0) return 2;
+    if (lstrcmpW(name, L"dx12") == 0) return 4;
+    return 0;
+}
+
+static int next_renderer(wchar_t *name, int tried)
+{
+    if (!(tried & 1)) lstrcpyW(name, L"dx11");
+    else if (!(tried & 2)) lstrcpyW(name, L"vulkan");
+    else if (!(tried & 4)) lstrcpyW(name, L"dx12");
+    else return 0;
+    return 1;
+}
+
+static HRESULT probe_dx11(void)
+{
+    static const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1,
+        D3D_FEATURE_LEVEL_10_0, D3D_FEATURE_LEVEL_9_3, D3D_FEATURE_LEVEL_9_2, D3D_FEATURE_LEVEL_9_1};
+    PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN create;
+    DXGI_SWAP_CHAIN_DESC desc;
+    IDXGISwapChain *swap = NULL;
+    ID3D11Device *device = NULL;
+    ID3D11DeviceContext *context = NULL;
+    D3D_FEATURE_LEVEL level;
+    HRESULT result;
+    HWND window;
+    HMODULE lib = LoadLibraryExW(L"d3d11.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (!lib) return HRESULT_FROM_WIN32(GetLastError());
+    create = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(lib, "D3D11CreateDeviceAndSwapChain");
+    if (!create) return E_NOINTERFACE;
+    window = CreateWindowExW(0, L"STATIC", L"", WS_OVERLAPPEDWINDOW, 0, 0, 64, 64, NULL, NULL, NULL, NULL);
+    if (!window) return HRESULT_FROM_WIN32(GetLastError());
+    ZeroMemory(&desc, sizeof desc);
+    desc.BufferDesc.Width = 64;
+    desc.BufferDesc.Height = 64;
+    desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    desc.BufferCount = 1;
+    desc.OutputWindow = window;
+    desc.Windowed = TRUE;
+    result = create(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, levels, sizeof levels / sizeof levels[0], D3D11_SDK_VERSION,
+                    &desc, &swap, &device, &level, &context);
+    if (result == E_INVALIDARG)
+        result = create(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL, 0, D3D11_SDK_VERSION, &desc, &swap, &device, &level,
+                        &context);
+    if (swap) IDXGISwapChain_Release(swap);
+    if (context) ID3D11DeviceContext_Release(context);
+    if (device) ID3D11Device_Release(device);
+    DestroyWindow(window);
+    return result;
+}
+
+static HRESULT probe_dx12(void)
+{
+    static const GUID device = {0x189819f1, 0x1db6, 0x4b57, {0xbe, 0x54, 0x18, 0x21, 0x33, 0x9b, 0x85, 0xf7}};
+    typedef HRESULT (WINAPI *create_fn)(IUnknown *, int, const GUID *, void **);
+    create_fn create;
+    HRESULT result;
+    HMODULE lib = LoadLibraryExW(L"d3d12.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (!lib) return HRESULT_FROM_WIN32(GetLastError());
+    create = (create_fn)GetProcAddress(lib, "D3D12CreateDevice");
+    if (!create) return E_NOINTERFACE;
+    result = create(NULL, 0xb000, &device, NULL);
+    return FAILED(result) ? result : S_OK;
+}
+
+static int renderer_ready(const wchar_t *name, const wchar_t *games, wchar_t *why)
+{
+    wchar_t list[64];
+    HRESULT result = S_OK;
+    int vulkan = lstrcmpW(name, L"vulkan") == 0, dx12 = lstrcmpW(name, L"dx12") == 0;
+    wsprintfW(game, dx12 ? L"%s\\game-dx12.hl" : L"%s\\game-dx11.hl", games);
+    if (!exists(game)) {
+        wsprintfW(why, L"%s is missing", game);
+        return 0;
+    }
+    if (vulkan) {
+        wsprintfW(other, L"%s\\vulkan\\d3d11.dll", bin);
+        if (!exists(other)) {
+            wsprintfW(why, L"%s is missing", other);
+            return 0;
+        }
+    }
+    if (GetEnvironmentVariableW(L"BIFROST_RENDERER_TEST_FAIL", list, 64) && wcsstr(list, name)) result = E_FAIL;
+    else if (dx12) result = probe_dx12();
+    else if (!vulkan) result = probe_dx11();
+    if (FAILED(result)) {
+        wsprintfW(why, L"%s could not start (%08lx)", name, (unsigned long)result);
+        return 0;
+    }
+    return 1;
+}
+
+static void keep_renderer(const wchar_t *storage, const wchar_t *name, int tried)
+{
+    char value[16];
+    if (tried == renderer_bit(name)) return;
+    WideCharToMultiByte(CP_UTF8, 0, name, -1, value, sizeof value, NULL, NULL);
+    save_renderer(storage, value);
+}
+
 static int host(const wchar_t *renderer, int gargc, wchar_t **gargv)
 {
     typedef int (*run_fn)(const wchar_t *, int, wchar_t **, void (*)(const wchar_t *));
@@ -405,7 +514,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
     static wchar_t cmd[32768];
     wchar_t *slash, renderer[16], note[256], storage[MAX_PATH], vulkan[MAX_PATH], games[MAX_PATH], view[MAX_PATH];
     char asked[16];
-    int argc = 0, official, forced;
+    int argc = 0, official, forced, tried = 0;
     wchar_t **argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     (void)inst; (void)prev; (void)line; (void)show;
     if (argv && argc >= 3 && lstrcmpW(argv[1], L"--discord-bridge") == 0)
@@ -422,6 +531,13 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
     if (slash) *slash = 0;
     find_engine();
     wsprintfW(bin, L"%s\\bin", engine);
+    {
+        wchar_t name[MAX_PATH + 32], *c;
+        wsprintfW(name, L"Local\\BifrostGame-%s", dir);
+        for (c = name + 6; *c; c++) if (*c == L'\\') *c = L'/';
+        CreateMutexW(NULL, FALSE, name);
+        if (GetLastError() == ERROR_ALREADY_EXISTS) return 0;
+    }
     forced = filter_args(argc, argv);
     wsprintfW(path, L"%s\\libhl.dll", bin);
     if (!exists(path)) return (int)original_game(L"no engine");
@@ -442,6 +558,10 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
         wsprintfW(view, L"%s\\view", games);
         refresh_view(view);
         SetEnvironmentVariableW(L"BH_NC_VIEW", view);
+        if (!GetEnvironmentVariableW(L"SteamAppId", note, 256)) {
+            SetEnvironmentVariableW(L"SteamAppId", L"291550");
+            SetEnvironmentVariableW(L"SteamGameId", L"291550");
+        }
         wsprintfW(storage, L"%s\\storage-official", engine);
         wsprintfW(other, L"%s\\logs\\boot-official.txt", engine);
     } else {
@@ -470,57 +590,72 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
     MultiByteToWideChar(CP_UTF8, 0, asked, -1, renderer, 16);
     note[0] = 0;
     wsprintfW(vulkan, L"%s\\vulkan", bin);
-    if (lstrcmpW(renderer, L"dx12") == 0) wsprintfW(game, L"%s\\game-dx12.hl", games);
-    else wsprintfW(game, L"%s\\game-dx11.hl", games);
-    if (lstrcmpW(renderer, L"vulkan") == 0) {
-        wsprintfW(other, L"%s\\d3d11.dll", vulkan);
-        if (!exists(other)) {
-            wsprintfW(note, L"%s is missing, starting dx11", other);
-            lstrcpyW(renderer, L"dx11");
-        }
-    } else if (lstrcmpW(renderer, L"dx11") != 0 && lstrcmpW(renderer, L"dx12") != 0) {
+    if (!renderer_bit(renderer)) {
         wsprintfW(note, L"unknown renderer, starting dx11");
         lstrcpyW(renderer, L"dx11");
     }
-    if (!exists(game)) {
-        wsprintfW(note, L"%s is missing, starting dx11", game);
-        lstrcpyW(renderer, L"dx11");
-        wsprintfW(game, L"%s\\game-dx11.hl", games);
-    }
-    if (lstrcmpW(renderer, L"vulkan") == 0) {
-        wsprintfW(path, L"%s\\bifrost-vulkan.exe", vulkan);
+    for (;;) {
+        wchar_t why[320];
+        tried |= renderer_bit(renderer);
+        if (renderer_ready(renderer, games, why)) {
+            keep_renderer(storage, renderer, tried);
+            if (lstrcmpW(renderer, L"vulkan") == 0) {
+                wsprintfW(path, L"%s\\bifrost-vulkan.exe", vulkan);
+                {
+                    wchar_t local[MAX_PATH], copy[MAX_PATH];
+                    WIN32_FILE_ATTRIBUTE_DATA a, b;
+                    if (GetEnvironmentVariableW(L"LOCALAPPDATA", local, MAX_PATH) && exists(path)) {
+                        wsprintfW(copy, L"%s\\Bifrost", local);
+                        CreateDirectoryW(copy, NULL);
+                        wsprintfW(copy, L"%s\\Bifrost\\engine", local);
+                        CreateDirectoryW(copy, NULL);
+                        wsprintfW(copy, L"%s\\Bifrost\\engine\\bifrost-vulkan.exe", local);
+                        if (!GetFileAttributesExW(copy, GetFileExInfoStandard, &b) ||
+                            !GetFileAttributesExW(path, GetFileExInfoStandard, &a) ||
+                            CompareFileTime(&a.ftLastWriteTime, &b.ftLastWriteTime) != 0 || a.nFileSizeLow != b.nFileSizeLow)
+                            CopyFileW(path, copy, FALSE);
+                        if (exists(copy)) lstrcpyW(path, copy);
+                    }
+                }
+                if (exists(path)) {
+                    DWORD code;
+                    record(renderer, official ? L"official, in bifrost-vulkan.exe" : L"in bifrost-vulkan.exe");
+                    wsprintfW(other, L"%s\\game-dx11.hl", games);
+                    SetEnvironmentVariableW(L"BIFROST_GAME_HL", other);
+                    SetEnvironmentVariableW(L"BIFROST_RENDERER_RETRY", L"1");
+                    wsprintfW(cmd, L"\"%s\" --hosted-vulkan %s", path, forwarded);
+                    code = run(path, cmd, bin, 1);
+                    SetEnvironmentVariableW(L"BIFROST_RENDERER_RETRY", NULL);
+                    if (code != RENDERER_FAILED) {
+                        if (code >= 0xC0000000u) {
+                            wsprintfW(note, L"the Vulkan start crashed (exit code %08lx); dx11 saved as the renderer\r\n", code);
+                            log_line(L"launcher.txt", note);
+                            save_renderer(storage, "dx11");
+                        }
+                        return (int)code;
+                    }
+                    wsprintfW(why, L"vulkan could not start (no usable Vulkan 1.3 device?)");
+                } else {
+                    record(renderer, official ? (note[0] ? note : L"official") : note);
+                    return host(renderer, fargc, fargv);
+                }
+            } else {
+                record(renderer, official ? (note[0] ? note : L"official") : note);
+                return host(renderer, fargc, fargv);
+            }
+        }
+        lstrcpynW(note, why, 256);
         {
-            wchar_t local[MAX_PATH], copy[MAX_PATH];
-            WIN32_FILE_ATTRIBUTE_DATA a, b;
-            if (GetEnvironmentVariableW(L"LOCALAPPDATA", local, MAX_PATH) && exists(path)) {
-                wsprintfW(copy, L"%s\\Bifrost", local);
-                CreateDirectoryW(copy, NULL);
-                wsprintfW(copy, L"%s\\Bifrost\\engine", local);
-                CreateDirectoryW(copy, NULL);
-                wsprintfW(copy, L"%s\\Bifrost\\engine\\bifrost-vulkan.exe", local);
-                if (!GetFileAttributesExW(copy, GetFileExInfoStandard, &b) ||
-                    !GetFileAttributesExW(path, GetFileExInfoStandard, &a) ||
-                    CompareFileTime(&a.ftLastWriteTime, &b.ftLastWriteTime) != 0 || a.nFileSizeLow != b.nFileSizeLow)
-                    CopyFileW(path, copy, FALSE);
-                if (exists(copy)) lstrcpyW(path, copy);
-            }
+            wchar_t failed[340];
+            wsprintfW(failed, L"%s\r\n", why);
+            log_line(L"launcher.txt", failed);
         }
-        if (exists(path)) {
-            DWORD code;
-            record(renderer, official ? L"official, in bifrost-vulkan.exe" : L"in bifrost-vulkan.exe");
-            wsprintfW(other, L"%s\\game-dx11.hl", games);
-            SetEnvironmentVariableW(L"BIFROST_GAME_HL", other);
-            wsprintfW(cmd, L"\"%s\" --hosted-vulkan %s", path, forwarded);
-            code = run(path, cmd, bin, 1);
-            if (code >= 0xC0000000u) {
-                wsprintfW(note, L"the Vulkan start crashed (exit code %08lx); dx11 saved as the renderer\r\n", code);
-                log_line(L"launcher.txt", note);
-                save_renderer(storage, "dx11");
-            }
-            return (int)code;
-        }
+        if (!next_renderer(renderer, tried)) break;
     }
-    record(renderer, official ? (note[0] ? note : L"official") : note);
-    return host(renderer, fargc, fargv);
+    if (MessageBoxW(NULL, L"Brawlhalla could not start its graphics on this PC: DirectX 11, Vulkan and DirectX 12 all failed.\n\n"
+                          L"Updating your graphics driver usually fixes this.\n\n"
+                          L"Start Brawlhalla's own game now?", L"Bifrost", MB_YESNO | MB_ICONERROR) == IDYES)
+        return (int)original_game(L"no renderer could start");
+    return 1;
 }
 

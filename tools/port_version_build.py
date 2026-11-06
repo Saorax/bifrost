@@ -70,7 +70,7 @@ def rewrite_tool(text: str, target: Path, version: str) -> str:
     text = text.replace('"build" / "game-test" / "port"', f'"build" / "game-test" / "port-{version}"')
     text = text.replace('"build" / "bifrost"', f'"build" / "bifrost-{version}"')
     text = text.replace('"C:/Coding/bh-bifrost-engine"', '"C:/Coding/BRAWLHALLA PROJECTS/bifrost/bifrost-main"'
-                        if version == "11.00" else f'"C:/Coding/bh-bifrost-engine-{version}"')
+                        if version.startswith("11.00") else f'"C:/Coding/bh-bifrost-engine-{version}"')
     for parser in ("parser", "p"):
         text = text.replace(f'{parser}.add_argument("--version", default="10.11"',
                             f'{parser}.add_argument("--version", default="{version}"')
@@ -78,6 +78,7 @@ def rewrite_tool(text: str, target: Path, version: str) -> str:
 
 
 def own_storage(text: str, version: str) -> str:
+    version = ".".join(version.split(".")[:2])
     tag = version.replace(".", "")
     text = text.replace('"BhPort"', f'"BhPort-{version}"').replace('"bhport_"', f'"bhport{tag}_"')
     text = text.replace('"bh-port-smoke"', f'"bh-port-smoke-{version}"')

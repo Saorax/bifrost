@@ -16,7 +16,9 @@ class HeapsMain extends hxd.App {
 		if (Sys.getEnv("BH_PORT_TRACK_ALLOC") == "1") h3d.impl.MemoryManager.enableTrackAlloc();
 		ShaderDiskCache.install(port.runtime.services.Launch.storageDirectory());
 		log("boot: start (Heaps engine, application " + port.runtime.services.Launch.applicationDirectory() + ")");
-		new HeapsMain();
+		try new HeapsMain() catch (e:Dynamic) {
+			if (!RendererStart.failed(Std.string(e))) throw e;
+		}
 	}
 
 	var frames = 0;
