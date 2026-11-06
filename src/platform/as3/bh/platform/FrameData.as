@@ -13,6 +13,7 @@ package bh.platform
 
       private static var stage:Stage;
       private static var root:Sprite = null;
+      private static var panel:Sprite = null;
       private static var field:TextField = null;
       private static var shown:String = "";
       private static var listening:Boolean = false;
@@ -380,25 +381,26 @@ package bh.platform
          {
             root = new Sprite();
             root.mouseEnabled = root.mouseChildren = false;
-            field = UiKit.text(root,"",10,6,13,UiKit.WHITE,UiKit.BOLD,360);
+            panel = new Sprite();
+            root.addChild(panel);
+            field = UiKit.text(panel,"",10,6,13,UiKit.WHITE,UiKit.BOLD,360);
          }
          if(root.parent == null)
          {
-            Layers.put(root,Layers.screens(),stage,true);
             shown = "";
          }
-         if(s == shown)
+         Layers.put(root,Layers.screens(),stage,true);
+         if(s != shown)
          {
-            return;
+            shown = s;
+            field.text = s;
+            panel.graphics.clear();
+            panel.graphics.beginFill(0x000000,0.55);
+            panel.graphics.drawRoundRect(0,0,field.width + 20,field.height + 12,10,10);
+            panel.graphics.endFill();
          }
-         shown = s;
-         field.text = s;
-         root.graphics.clear();
-         root.graphics.beginFill(0x000000,0.55);
-         root.graphics.drawRoundRect(0,0,field.width + 20,field.height + 12,10,10);
-         root.graphics.endFill();
-         root.x = stage.stageWidth - root.width - 16;
-         root.y = Math.round(stage.stageHeight * 0.3);
+         panel.x = stage.stageWidth - panel.width - 16;
+         panel.y = Math.round(stage.stageHeight * 0.3);
       }
    }
 }

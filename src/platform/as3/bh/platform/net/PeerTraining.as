@@ -161,7 +161,12 @@ package bh.platform.net
          {
             return "online training is already running";
          }
-         if(!Platform.matchRunning || (uint(core.var_3595) & TRAINING_MODE) == 0)
+         var mode:uint = uint(core.var_3595);
+         if((mode & 32) != 0)
+         {
+            mode = uint(core.var_13582);
+         }
+         if(!Platform.matchRunning || (mode & TRAINING_MODE) == 0)
          {
             return "start Training first";
          }
