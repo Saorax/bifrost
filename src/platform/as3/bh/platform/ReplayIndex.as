@@ -51,7 +51,7 @@ package bh.platform
                rowMenu(screen);
                return true;
             }
-            return false;
+            return ReplaysWindow.pressed(screen,input);
          });
          Hooks.replaysRowsDrawing.add(function(screen:Object):void
          {

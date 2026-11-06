@@ -66,8 +66,10 @@ package bh.platform.net
          }
          if(PrivateServer.p2pRelayOnly)
          {
-            askedRoom = roomNumber;
+            askedRoom = room = roomNumber;
+            ids = players;
             PrivateServer.log("P2P room " + roomNumber + ": \"p2p\": \"relay\" in bh-server.json; not asked, the relay");
+            answer(false);
             return;
          }
          askedRoom = room = roomNumber;
@@ -135,7 +137,8 @@ package bh.platform.net
          var text:String = who.join(", ") + (who.length == 1 ? " isn't" : " aren't") + " on your friends list.\n" +
             "Through the server's relay: " + pings.join(", ") + ". It hides your IP address.\n" +
             "DIRECT can be faster, but shows each of you the other's IP address. It is used only if both choose it; " +
-            "the direct ping is measured then.";
+            "the direct ping is measured then.\n" +
+            "The match starts once everyone answers, or after 12 seconds with the relay.";
          open = Modal.show(TITLE,text,[{"label":"Direct","action":function():void
          {
             answer(true);

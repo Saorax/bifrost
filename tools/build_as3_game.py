@@ -1,6 +1,6 @@
 """build the game SWF from the AS3 source, with the original names and the mods applied.
 
-    python tools/build_as3_game.py [--version 11.00] [--export] [--no-mods]
+    python tools/build_as3_game.py [--version 11.00.49] [--export] [--no-mods]
 
 runs, stopping at the first failure:
 
@@ -134,7 +134,7 @@ def cache_store(key: str, out_dir: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--version", default="11.00", help="game version to build (default 11.00, the current one since "
+    p.add_argument("--version", default="11.00.49", help="game version to build (default 11.00.49, the current one since "
                    "2026-10-14; 10.11 for the old copy). src/platform and src/mods name 10.11's symbols and are "
                    "ported to it")
     p.add_argument("--export", action="store_true", help="re-export the AS3 tree first (wipes edits in it)")

@@ -162,6 +162,8 @@ package bh.platform.net
          return null;
       }
 
+      public static var main:Object = null;
+
       public static function init() : void
       {
          try
@@ -177,6 +179,7 @@ package bh.platform.net
             var text:String = s.readUTFBytes(s.bytesAvailable);
             s.close();
             var cfg:Object = JSON.parse(text);
+            main = cfg.main != null && cfg.main.host ? {"host":String(cfg.main.host),"port":int(cfg.main.port) || 7910} : null;
             var h:String = String(cfg.host || "").replace(/^\s+|\s+$/g,"");
             var p:int = int(cfg.port);
             var why:String = refuse(h,p);

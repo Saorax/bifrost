@@ -10,6 +10,7 @@ package bh.mods.examplescreen
    import bh.platform.MusicPacks;
    import bh.platform.Modal;
    import bh.platform.ModServerWindow;
+   import bh.platform.PageFit;
    import bh.platform.Platform;
    import bh.platform.net.ModCheck;
    import bh.platform.net.ModShare;
@@ -305,7 +306,8 @@ package bh.mods.examplescreen
          {
             panelClip.getChildAt(i).visible = false;
          }
-         var r:Rectangle = pageScreen();
+         var narrow:Rectangle = PageFit.screen(SCREEN);
+         var r:Rectangle = narrow != null ? narrow : pageScreen();
          HALF = (r.width - 40) / 2;
          LEFT = r.x + 30;
          TOP = r.y + 122 + 36;
@@ -315,6 +317,7 @@ package bh.mods.examplescreen
          DW = r.right - 30 - DX;
          body = new Sprite();
          panelClip.addChild(body);
+         PageFit.keep(body,r);
          rect(body,r.x,r.y,r.width,r.height,BODY);
          rect(body,r.x,r.y,r.width,104,PANEL);
          rect(body,r.x,r.y + 104,r.width,3,TEAL);

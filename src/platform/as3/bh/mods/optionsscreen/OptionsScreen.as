@@ -860,6 +860,15 @@ package bh.mods.optionsscreen
       private function mainServer() : Object
       {
          var m:* = ModSettings.value("mainServer");
+         var release:Object = PrivateServer.main;
+         if(release != null)
+         {
+            if(m == null || typeof m != "object" || m.host != release.host || int(m.port) != int(release.port))
+            {
+               ModSettings.setValue("mainServer",release);
+            }
+            return release;
+         }
          if((m == null || typeof m != "object" || !m.host) && PrivateServer.host != null)
          {
             m = {"host":PrivateServer.host,"port":int(PrivateServer.port)};

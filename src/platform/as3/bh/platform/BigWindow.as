@@ -388,11 +388,13 @@ package bh.platform
          {
             panel.getChildAt(i).visible = false;
          }
-         screen = pageScreen();
+         var narrow:Rectangle = PageFit.screen(SCREEN);
+         screen = narrow != null ? narrow : pageScreen();
          ErrorLog.write("page " + title + ": screen " + screen + (panel.stage == null ? " (not on the stage yet)" : ""));
          var r:Rectangle = screen;
          body = new Sprite();
          panel.addChild(body);
+         PageFit.keep(body,r);
          UiKit.rect(body,r.x,r.y,r.width,r.height,UiKit.BODY);
          UiKit.rect(body,r.x,r.y,r.width,104,UiKit.PANEL);
          UiKit.rect(body,r.x,r.y + 104,r.width,3,UiKit.TEAL);

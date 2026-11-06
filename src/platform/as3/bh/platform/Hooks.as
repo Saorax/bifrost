@@ -80,6 +80,8 @@ package bh.platform
 
       public static const optionsMenuShown:Hook = new Hook("optionsMenuShown");
 
+      public static const optionsMenuInput:Hook = new Hook("optionsMenuInput");
+
       public static const simulationFrame:Hook = new Hook("simulationFrame");
 
       public static const legendStepping:Hook = new Hook("legendStepping");

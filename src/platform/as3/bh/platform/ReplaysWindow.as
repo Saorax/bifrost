@@ -20,6 +20,7 @@ package bh.platform
 
       private static var window:ReplaysWindow;
       private static var tabScreen:Object = null;
+      private static const FORWARD:Array = [2,6,17,23];
       private static var wantAfterMatch:Boolean = false;
       private static var openName:String = null;
       private static var settledAt:int = 0;
@@ -113,7 +114,18 @@ package bh.platform
          return window;
       }
 
-      public static function over(screen:Object) : void
+      public static function pressed(screen:Object, input:int) : Boolean
+      {
+         if(!enabled || class_687.var_11971 != 2 || FORWARD.indexOf(input) < 0 || screen == null || !screen.isActive ||
+            window != null && window.isActive)
+         {
+            return false;
+         }
+         over(screen,true);
+         return true;
+      }
+
+      public static function over(screen:Object, forwarded:Boolean = false) : void
       {
          if(!enabled)
          {
@@ -127,7 +139,8 @@ package bh.platform
             return;
          }
          if(window != null && window.isActive || screen == null || !screen.isActive ||
-            screen === leftScreen && getTimer() - leftAt < 2000)
+            !forwarded && screen === leftScreen && getTimer() - leftAt < 2000 ||
+            !forwarded && class_687.var_11971 == 2)
          {
             return;
          }

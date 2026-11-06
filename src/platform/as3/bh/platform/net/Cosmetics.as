@@ -17,6 +17,10 @@ package bh.platform.net
 
       private static var registered:Boolean = false;
 
+      private static var rolledFrom:String = null;
+
+      private static var rolled:Array = null;
+
       public function Cosmetics()
       {
       }
@@ -29,13 +33,23 @@ package bh.platform.net
          }
          registered = true;
          Hooks.packetReceived.add(onPacket);
+         Hooks.matchEnded.add(function(state:uint):void
+         {
+            rolledFrom = null;
+         });
       }
 
       public static function mine() : Array
       {
          var core:Object = Object(GameApp.mainInstance).var_13259;
+         var inv:Object = core.var_8329;
+         var from:String = picksOf(inv);
+         if(rolled != null && from == rolledFrom)
+         {
+            return rolled.concat();
+         }
          var l:class_294 = new class_294();
-         core.var_8329.method_206(l);
+         inv.method_206(l);
          var out:Array = [];
          for each(var f:String in FIELDS)
          {
@@ -45,8 +59,28 @@ package bh.platform.net
          {
             out.push(uint(l.var_7882[i]));
          }
-         out.push(uint(core.var_8329.method_7366()));
-         return out;
+         out.push(uint(inv.method_7366()));
+         rolledFrom = from;
+         rolled = out;
+         return out.concat();
+      }
+
+      private static function picksOf(inv:Object) : String
+      {
+         var from:String = uint(inv.var_13799) + "," + uint(inv.var_15092) + ";";
+         for each(var set:Object in [inv.var_6605,inv.var_9090,inv.var_13887,inv.var_3278,inv.var_4493,inv.var_5174])
+         {
+            for each(var w:* in set.var_3813)
+            {
+               from += uint(w) + ",";
+            }
+            from += ";";
+         }
+         for each(var emote:* in inv.var_15310)
+         {
+            from += uint(emote) + ",";
+         }
+         return from;
       }
 
       private static function defaults() : Array
@@ -121,6 +155,10 @@ package bh.platform.net
          }
          if(packet.type == ROOM || packet.type == P2PMatch.MATCH_FOUND)
          {
+            if(packet.type == P2PMatch.MATCH_FOUND)
+            {
+               rolledFrom = null;
+            }
             sendMine();
             return false;
          }

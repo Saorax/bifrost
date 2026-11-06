@@ -1086,6 +1086,20 @@
    ]
   },
   {
+   "id": "hook-options-menu-input",
+   "file": "class_207.as",
+   "function": "i/method/HandleInput",
+   "where": "start",
+   "mode": "bytecode",
+   "hook": "optionsMenuInput",
+   "args": [
+    "this",
+    "param1"
+   ],
+   "consumable": true,
+   "returns": "true"
+  },
+  {
    "id": "hook-legend-step",
    "file": "class_123.as",
    "function": "i/method/method_1118",

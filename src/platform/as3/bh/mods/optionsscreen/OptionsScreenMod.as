@@ -7,6 +7,8 @@ package bh.mods.optionsscreen
    {
       private static var screen:OptionsScreen;
       private static var pendingHub:Object;
+      private static var waitingHub:Object;
+      private static const FORWARD:Array = [5,6,17,23];
 
       public function OptionsScreenMod()
       {
@@ -15,6 +17,16 @@ package bh.mods.optionsscreen
       public static function register() : void
       {
          Hooks.optionsMenuShown.add(onHub);
+         Hooks.optionsMenuInput.add(function(hub:Object, input:int):Boolean
+         {
+            if(waitingHub == null || hub !== waitingHub || !hub.isActive || FORWARD.indexOf(input) < 0)
+            {
+               return false;
+            }
+            waitingHub = null;
+            open(hub);
+            return true;
+         });
          Hooks.keyDown.add(function(event:Object):Boolean
          {
             return screen != null && screen.isActive && (screen.typing() || screen.keyDownHook(event));
@@ -47,6 +59,11 @@ package bh.mods.optionsscreen
          pendingHub = null;
          if(hub == null || !hub.isActive)
          {
+            return;
+         }
+         if(class_687.var_11971 == 2)
+         {
+            waitingHub = hub;
             return;
          }
          open(hub);
