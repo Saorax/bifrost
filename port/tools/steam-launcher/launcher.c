@@ -501,12 +501,34 @@ static void refresh_view(const wchar_t *view)
 static DWORD original_game(const wchar_t *why)
 {
     static wchar_t cmd[32768];
-    wchar_t line[512];
+    wchar_t line[512], live[MAX_PATH], aside[MAX_PATH], app[64];
+    DWORD code;
+    int tries;
     wsprintfW(line, L"%s: starting Brawlhalla's own game\r\n", why);
     log_line(L"launcher.txt", line);
-    lstrcpyW(path, backup);
-    wsprintfW(cmd, L"\"%s\" %s", path, forwarded);
-    return run(path, cmd, dir, 0);
+    wsprintfW(live, L"%s\\Brawlhalla.exe", dir);
+    wsprintfW(aside, L"%s\\Brawlhalla.exe.bifrost-launcher", dir);
+    DeleteFileW(aside);
+    if (!MoveFileW(live, aside)) {
+        log_line(L"launcher.txt", L"could not move the launcher aside for Brawlhalla's own game\r\n");
+        MessageBoxW(NULL, L"Brawlhalla's own game couldn't start: the game folder can't be changed.", L"Bifrost", MB_OK | MB_ICONERROR);
+        return 1;
+    }
+    if (!CopyFileW(backup, live, FALSE)) {
+        MoveFileW(aside, live);
+        log_line(L"launcher.txt", L"could not put Brawlhalla's own game in place\r\n");
+        MessageBoxW(NULL, L"Brawlhalla's own game couldn't start: open the Bifrost app to repair the install.", L"Bifrost", MB_OK | MB_ICONERROR);
+        return 1;
+    }
+    if (!GetEnvironmentVariableW(L"SteamAppId", app, 64)) {
+        SetEnvironmentVariableW(L"SteamAppId", L"291550");
+        SetEnvironmentVariableW(L"SteamGameId", L"291550");
+    }
+    wsprintfW(cmd, L"\"%s\" %s", live, forwarded);
+    code = run(live, cmd, dir, 0);
+    for (tries = 0; tries < 40 && !DeleteFileW(live); tries++) Sleep(500);
+    if (!MoveFileW(aside, live)) log_line(L"launcher.txt", L"could not put the launcher back after Brawlhalla's own game\r\n");
+    return code;
 }
 
 int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
