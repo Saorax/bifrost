@@ -36,7 +36,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from tools import game_files
+from tools import engine_stamp, game_files
 
 DEFAULT_OUT = ROOT / "build" / "player-kit"
 DEFAULT_ENGINE = Path("C:/Coding/BRAWLHALLA PROJECTS/bifrost/bifrost-main")
@@ -59,7 +59,7 @@ TOOLCHAIN = [
              ".tools/haxelib/openfl/9,5,2", ".tools/haxelib/lime/8,3,2/src", ".tools/haxelib/lime/8,3,2/LICENSE.md",
              ".tools/haxelib/lime/8,3,2/haxelib.json", ".tools/haxelib/lime/8,3,2/extraParams.hxml"]
 AIR_TOOLCHAIN = {".tools/ffdec": ".tools/ffdec", ".tools/rabcdasm/bin": ".tools/rabcdasm/bin"}
-ENGINE_SKIP = {"bifrost-src", "install", "storage", "README.md",
+ENGINE_SKIP = {"bifrost-src", "install", "storage", "README.md", engine_stamp.STAMP,
                "boot.txt", "boot-previous.txt", "bh-bifrost-engine.txt", "run.bat", "build-gl.hxml"}
 ENGINE_DROP = ("bin/SDL2.dll", "bin/sdl.hdll", "lib/hlsdl")
 LAUNCHER = ["build/steam-launcher/Brawlhalla.exe", "build/steam-launcher/bifrost-vm.dll"]
@@ -128,8 +128,20 @@ def copy(src: Path, dst: Path) -> None:
         shutil.copy2(src, dst)
 
 
+def refresh_command(engine: Path) -> str:
+    return (f'python tools/port_version_build.py run --version {VERSION} -- bifrost_export.py --out "{engine.as_posix()}" '
+            f"--install-source build/game-test/port-{VERSION} --no-build")
+
+
+def check_engine(engine: Path) -> None:
+    problem = engine_stamp.stale(engine, ROOT, VERSION)
+    if problem:
+        raise KitError(f"{engine}: {problem}. refresh it first:\n  {refresh_command(engine)}")
+
+
 def build(out: Path, engine: Path, server: str | None = None, release: str | None = None) -> dict:
     started = time.monotonic()
+    check_engine(engine)
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -211,7 +223,8 @@ def build(out: Path, engine: Path, server: str | None = None, release: str | Non
     (out / "server.json").write_text(json.dumps({"host": host, "port": int(port)}) + "\n", encoding="utf-8")
     port_commit = git(ROOT, "rev-parse", "--short", "HEAD").decode().strip()
     info = {"release": release or time.strftime("%Y.%m.%d-") + port_commit, "game": VERSION, "air_pin": commit,
-            "port_commit": port_commit, "server": f"{host}:{port}", "built": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "port_commit": port_commit, "engine_source": engine_stamp.source_hash(ROOT),
+            "server": f"{host}:{port}", "built": time.strftime("%Y-%m-%d %H:%M:%S"),
             "game_files": game_files.fingerprint(ROOT / "versions" / VERSION),
             "game_file_list": game_files.listing(ROOT / "versions" / VERSION),
             "size_mb": round(size(out) / 2**20, 1), "seconds": round(time.monotonic() - started)}

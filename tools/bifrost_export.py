@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tools import bifrost_build, port_raw_export
+from tools import bifrost_build, engine_stamp, port_raw_export
 
 MARKER = "bh-bifrost-engine.txt"
 DEFAULT_OUT = Path("C:/Coding/bh-bifrost-engine")
@@ -273,6 +273,7 @@ def export(out: Path, *, endpoint: str | None, air: Path, install: Path = INSTAL
                                                  commit=bifrost_build.source_commit(), server=server, out=out,
                                                  version=game_version(), storage_dir=CONFIG_REL.parts[0],
                                                  mods=", ".join(mods)), encoding="utf-8")
+    engine_stamp.write(out, ROOT, game_version())
     print(f"bifrost_export: Bifrost ({sum(1 for _ in (out / GAME_DIR).rglob('*.hx'))} files, mods {', '.join(mods)}) and"
           f" the Heaps engine -> {out} in {time.monotonic() - started:.0f} s; install {made} linked, {kept} kept; "
           f"{bridge}; server {server}")

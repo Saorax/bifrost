@@ -36,7 +36,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from tools import game_files, player_kit
+from tools import engine_stamp, game_files, player_kit
 
 OUT = ROOT / "build" / "player-release"
 REPOS = ROOT / "tools" / "release_repos.json"
@@ -173,6 +173,8 @@ def release_bifrost(a: argparse.Namespace, repo: str | None) -> tuple[str, list[
     if not a.no_build:
         player_kit.build(player_kit.DEFAULT_OUT, player_kit.DEFAULT_ENGINE, a.server, name)
     info = json.loads((player_kit.DEFAULT_OUT / "kit.json").read_text(encoding="utf-8"))
+    if info.get("engine_source") != engine_stamp.source_hash(ROOT):
+        raise player_kit.KitError(f"{player_kit.DEFAULT_OUT}: the engine sources changed after this kit was built; build it again")
     name = info["release"]
     folder = fresh(OUT / f"bifrost-{name}")
     kit = pack_kit(player_kit.DEFAULT_OUT, folder, name)
