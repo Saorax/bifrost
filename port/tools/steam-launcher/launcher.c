@@ -323,6 +323,7 @@ static int host(const wchar_t *renderer, int gargc, wchar_t **gargv)
     wchar_t note[512];
     SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
     AddDllDirectory(bin);
+    SetEnvironmentVariableW(L"BIFROST_RENDERER", renderer);
     if (lstrcmpW(renderer, L"vulkan") == 0) {
         wsprintfW(other, L"%s\\vulkan", bin);
         AddDllDirectory(other);
@@ -631,17 +632,22 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
                         CreateDirectoryW(copy, NULL);
                         wsprintfW(copy, L"%s\\Bifrost\\engine", local);
                         CreateDirectoryW(copy, NULL);
-                        wsprintfW(copy, L"%s\\Bifrost\\engine\\bifrost-vulkan.exe", local);
+                        wsprintfW(copy, L"%s\\Bifrost\\engine\\Brawlhalla.exe", local);
                         if (!GetFileAttributesExW(copy, GetFileExInfoStandard, &b) ||
                             !GetFileAttributesExW(path, GetFileExInfoStandard, &a) ||
                             CompareFileTime(&a.ftLastWriteTime, &b.ftLastWriteTime) != 0 || a.nFileSizeLow != b.nFileSizeLow)
                             CopyFileW(path, copy, FALSE);
-                        if (exists(copy)) lstrcpyW(path, copy);
+                        if (exists(copy)) {
+                            wchar_t old_name[MAX_PATH];
+                            wsprintfW(old_name, L"%s\\Bifrost\\engine\\bifrost-vulkan.exe", local);
+                            if (lstrcmpW(old_name, copy) != 0) DeleteFileW(old_name);
+                            lstrcpyW(path, copy);
+                        }
                     }
                 }
                 if (exists(path)) {
                     DWORD code;
-                    record(renderer, official ? L"official, in bifrost-vulkan.exe" : L"in bifrost-vulkan.exe");
+                    record(renderer, official ? L"official, vulkan hosted" : L"vulkan hosted");
                     wsprintfW(other, L"%s\\game-dx11.hl", games);
                     SetEnvironmentVariableW(L"BIFROST_GAME_HL", other);
                     SetEnvironmentVariableW(L"BIFROST_RENDERER_RETRY", L"1");

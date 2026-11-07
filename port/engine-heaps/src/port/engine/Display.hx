@@ -7,6 +7,7 @@ class Display {
 		#if dx12
 		return "dx12";
 		#elseif hldx
+		if (Sys.getEnv("BIFROST_RENDERER") == "vulkan") return "vulkan";
 		try {
 			for (dir in [haxe.io.Path.directory(Sys.programPath()), Sys.getCwd()])
 				if (dir != null && dir != "" && sys.FileSystem.exists(haxe.io.Path.join([dir, "d3d11.dll"])))
