@@ -176,7 +176,7 @@ package bh.platform
       {
          var state:uint = uint(g.gameState);
          var flags:uint = uint(g.var_3595);
-         return state == 6 || state == 5 && (flags & 1024) != 0 || state == 3 && (flags & 32) != 0;
+         return state == 6 || state == 5 && (flags & 1024) != 0 || state == 3 && (flags & 4) != 0;
       }
 
       private static function report() : void

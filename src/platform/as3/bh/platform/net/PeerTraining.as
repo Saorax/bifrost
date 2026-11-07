@@ -93,7 +93,8 @@ package bh.platform.net
                }
             }
          }
-         return setsByLevel[levelName] || [];
+         var sets:Array = setsByLevel[levelName] as Array || [];
+         return sets;
       }
 
       private static function setLabel(set:Object) : String
