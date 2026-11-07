@@ -6,6 +6,7 @@ package bh.platform
    import flash.display.Stage;
    import flash.geom.Rectangle;
    import flash.text.TextField;
+   import flash.utils.Dictionary;
 
    public final class RatingTags
    {
@@ -282,7 +283,7 @@ package bh.platform
          var boxes:Array = [];
          for each(var t:Object in tags)
          {
-            boxes.push(DisplayObject(t.at).getBounds(s));
+            boxes.push(t.podium ? DisplayObject(t.at).getBounds(s) : anchor(DisplayObject(t.at),s));
             var under:Rectangle = t.below != null ? DisplayObject(t.below).getBounds(s) : null;
             t.underY = under != null ? under.bottom : NaN;
             key += t.top + "|" + t.bottom + "|" + t.colour + "|" + t.tier + "|" + t.rating + "|" + t.gain + "|" + t.loss +
@@ -349,6 +350,23 @@ package bh.platform
             layer.addChild(card);
          }
          Layers.put(layer,holder,s);
+      }
+
+      private static var anchors:Dictionary = new Dictionary(true);
+
+      private static function anchor(at:DisplayObject, s:Stage) : Rectangle
+      {
+         var field:DisplayObject = anchors[at] as DisplayObject;
+         if(field == null || field.stage == null)
+         {
+            field = findText(at as DisplayObjectContainer,"am_AccountName");
+            if(field != null)
+            {
+               anchors[at] = field;
+            }
+         }
+         var target:DisplayObject = field != null && field.stage != null ? field : at;
+         return target.getBounds(s);
       }
 
       private static function place(card:DisplayObject, tag:Object, box:Rectangle, row:Number, sc:Number, s:Stage) : void

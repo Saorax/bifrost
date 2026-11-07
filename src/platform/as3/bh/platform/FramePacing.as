@@ -20,6 +20,9 @@ package bh.platform
       private static var alpha:Number = 0;
       private static var rollback:Boolean = false;
       private static var modified:Boolean = false;
+      private static var frames:uint = 0;
+      private static var steps:uint = 0;
+      private static var offStep:uint = 0;
       public static var on:Boolean = false;
 
       public function FramePacing()
@@ -44,6 +47,7 @@ package bh.platform
          ModSettings.setFlag("framePacing",on);
          restore();
          clear();
+         report();
          Platform.log("frame pacing " + (on ? "on" : "off") + " (F11)");
          return true;
       }
@@ -101,12 +105,13 @@ package bh.platform
             return;
          }
          var g:Object = game();
-         if(g == null || g.gameState != 6 && (g.gameState != 5 || (uint(g.var_3595) & 1024) == 0))
+         if(g == null || !paced(g))
          {
             if(active.length > 0)
             {
                restore();
                clear();
+               report();
             }
             return;
          }
@@ -117,6 +122,11 @@ package bh.platform
             var before:Number = matchTime ? Number(g.var_13849) : Number(g.var_1171);
             stepped = Math.floor(now / 16) != Math.floor(before / 16);
             alpha = (now % 16) / 16;
+            frames++;
+            if(stepped)
+            {
+               steps++;
+            }
             rollback = P2PSession.rollbackOn;
             if(rollback)
             {
@@ -160,6 +170,25 @@ package bh.platform
             restore();
             clear();
          }
+      }
+
+      private static function paced(g:Object) : Boolean
+      {
+         var state:uint = uint(g.gameState);
+         var flags:uint = uint(g.var_3595);
+         return state == 6 || state == 5 && (flags & 1024) != 0 || state == 3 && (flags & 32) != 0;
+      }
+
+      private static function report() : void
+      {
+         if(frames > 0)
+         {
+            Platform.log("frame pacing: " + frames + " frames, " + steps + " with steps, " + offStep +
+               " moves between steps");
+         }
+         frames = 0;
+         steps = 0;
+         offStep = 0;
       }
 
       private static function entry(node:Object) : PacedNode
@@ -216,6 +245,7 @@ package bh.platform
          else if(x != n.cx || y != n.cy || sx != n.csx || sy != n.csy)
          {
             n.hasPrev = false;
+            offStep++;
          }
          n.cx = x;
          n.cy = y;

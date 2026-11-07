@@ -59,13 +59,54 @@ package bh.platform.net
                continue;
             }
             seen[uint(level.var_8543)] = true;
-            out.push([uint(level.var_8543),String(level.mDisplayName || level.var_8543)]);
+            out.push([uint(level.var_8543),String(level.mDisplayName || level.var_8543),String(level.var_14988 || ""),
+               setsOf(String(level.var_5173))]);
          }
          out.sort(function(a:Array, b:Array):int
          {
             return String(a[1]) < String(b[1]) ? -1 : (String(a[1]) > String(b[1]) ? 1 : 0);
          });
          return out;
+      }
+
+      private static var setsByLevel:Object = null;
+
+      private static function setsOf(levelName:String) : Array
+      {
+         if(setsByLevel == null)
+         {
+            setsByLevel = {};
+            var all:Object = class_248.var_6011;
+            for(var i:int = 0; all != null && i < int(all.length); i++)
+            {
+               var set:Object = all[i];
+               var label:String = setLabel(set);
+               var names:Object = set.var_188;
+               for(var j:int = 0; names != null && j < int(names.length); j++)
+               {
+                  var key:String = String(names[j]);
+                  var list:Array = setsByLevel[key] || (setsByLevel[key] = []);
+                  if(list.indexOf(label) < 0)
+                  {
+                     list.push(label);
+                  }
+               }
+            }
+         }
+         return setsByLevel[levelName] || [];
+      }
+
+      private static function setLabel(set:Object) : String
+      {
+         var label:String = null;
+         try
+         {
+            label = set.mDisplayNameKey ? String(class_256.method_2800(set.mDisplayNameKey)) : null;
+         }
+         catch(e:Error)
+         {
+         }
+         return label && label != set.mDisplayNameKey ? label : String(set.var_11695);
       }
 
       public static function currentMap() : String

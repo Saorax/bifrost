@@ -10,6 +10,8 @@ package bh.mods.lobbyscreen
    import flash.display.Bitmap;
    import flash.display.BitmapData;
    import flash.display.Sprite;
+   import flash.events.MouseEvent;
+   import flash.filesystem.File;
    import flash.text.TextField;
    import flash.utils.Dictionary;
 
@@ -28,6 +30,10 @@ package bh.mods.lobbyscreen
       public static var online:Object = null;
 
       private static var startTab:int = -1;
+
+      private static var mapSet:int = 0;
+
+      private static const MAP_COLS:int = 3;
 
       private static const ABOUT:Object = {
          "Player_GameModeType":"The kind of training: on your own, against a bot, or a game mode's practice.",
@@ -416,21 +422,135 @@ package bh.mods.lobbyscreen
          var rightW:Number = onlineRightW;
          var currentMap:String = String(online.currentMap());
          UiKit.text(right,"MAP  ·  " + currentMap.toUpperCase(),14,y,12,UiKit.GREY,UiKit.XBOLD);
-         UiKit.text(right,"Pick a map to move both of you there. The match restarts on it.",14,y + 20,12,UiKit.LIGHT,UiKit.MEDIUM,
-            rightW - 28);
-         var grid:Sprite = scroller(right,0,y + 44,rightW,area.height - y - 50);
-         var colW:Number = Math.floor((rightW - 40) / 2);
-         for(var i:int = 0; i < maps.length; i++)
+         var sets:Array = mapSets(maps);
+         if(mapSet >= sets.length)
          {
-            var name:String = String(maps[i][1]);
-            var here:Boolean = name == currentMap;
-            var b:Sprite = onlineButton(grid,name.toUpperCase(),14 + (i % 2) * (colW + 8),Math.floor(i / 2) * 36,colW,
-               here ? noop : mapPicker(uint(maps[i][0])),30,12,!here);
-            if(here)
+            mapSet = 0;
+         }
+         var top:Number = y + 24 + setChips(right,14,y + 24,rightW - 28,sets);
+         var picked:String = mapSet > 0 ? String(sets[mapSet]) : null;
+         var shown:Array = [];
+         for(var k:int = 0; k < maps.length; k++)
+         {
+            if(picked == null || (maps[k].length > 3 && (maps[k][3] as Array).indexOf(picked) >= 0))
             {
-               b.alpha = 0.45;
+               shown.push(maps[k]);
             }
          }
+         var grid:Sprite = scroller(right,0,top + 10,rightW,area.height - top - 16);
+         var cardW:Number = Math.floor((rightW - 28 - (MAP_COLS - 1) * 8) / MAP_COLS);
+         var picH:Number = Math.round(cardW * 9 / 16);
+         for(var i:int = 0; i < shown.length; i++)
+         {
+            mapCard(grid,14 + (i % MAP_COLS) * (cardW + 8),2 + Math.floor(i / MAP_COLS) * (picH + 34),cardW,picH,shown[i],
+               String(shown[i][1]) == currentMap);
+         }
+      }
+
+      private static function mapSets(maps:Array) : Array
+      {
+         var counts:Object = {};
+         var order:Array = [];
+         for(var i:int = 0; i < maps.length; i++)
+         {
+            var in_:Array = maps[i].length > 3 ? maps[i][3] as Array : null;
+            for(var j:int = 0; in_ != null && j < in_.length; j++)
+            {
+               var s:String = String(in_[j]);
+               if(counts[s] == null)
+               {
+                  counts[s] = 0;
+                  order.push(s);
+               }
+               counts[s]++;
+            }
+         }
+         var useful:Array = [];
+         for(var k:int = 0; k < order.length; k++)
+         {
+            if(counts[order[k]] >= 2 && counts[order[k]] < maps.length)
+            {
+               useful.push(order[k]);
+            }
+         }
+         useful.sort(function(a:String, b:String):int
+         {
+            return counts[a] != counts[b] ? counts[b] - counts[a] : (a < b ? -1 : (a > b ? 1 : 0));
+         });
+         return ["All maps"].concat(useful);
+      }
+
+      private function setChips(parent:Sprite, x:Number, y:Number, w:Number, sets:Array) : Number
+      {
+         var cx:Number = 0;
+         var cy:Number = 0;
+         for(var i:int = 0; i < sets.length; i++)
+         {
+            var on:Boolean = i == mapSet;
+            var chip:Sprite = new Sprite();
+            chip.buttonMode = true;
+            parent.addChild(chip);
+            var label:TextField = UiKit.text(chip,String(sets[i]).toUpperCase(),12,4,11,on ? UiKit.NAVY_TEXT : UiKit.LIGHT,UiKit.XBOLD);
+            var chipW:Number = label.width + 24;
+            if(cx > 0 && cx + chipW > w)
+            {
+               cx = 0;
+               cy += 30;
+            }
+            chip.x = x + cx;
+            chip.y = y + cy;
+            chip.setChildIndex(UiKit.rect(chip,0,0,chipW,24,on ? UiKit.TEAL : UiKit.LINE,24),0);
+            var act:Function = setPicker(i);
+            chip.addEventListener(MouseEvent.CLICK,clicked(act));
+            items.push({"kind":"button","act":act,"sprite":chip,"parent":parent,"width":chipW,"height":24});
+            cx += chipW + 6;
+         }
+         return cy + 24;
+      }
+
+      private function mapCard(grid:Sprite, x:Number, y:Number, w:Number, picH:Number, map:Array, here:Boolean) : void
+      {
+         var card:Sprite = new Sprite();
+         card.x = x;
+         card.y = y;
+         card.buttonMode = !here;
+         grid.addChild(card);
+         UiKit.rect(card,-2,-2,w + 4,picH + 30,here ? UiKit.TEAL : UiKit.LINE,8);
+         var pic:Sprite = new Sprite();
+         card.addChild(pic);
+         UiKit.rect(pic,0,0,w,picH,UiKit.NAVY_TEXT,6);
+         var thumb:String = map.length > 2 ? String(map[2]) : "";
+         if(thumb != "")
+         {
+            UiKit.picture(pic,File.applicationDirectory.resolvePath(thumb),w,picH,true);
+         }
+         UiKit.fit(UiKit.text(card,String(map[1]).toUpperCase(),w / 2,picH + 5,11,here ? UiKit.NAVY_TEXT : UiKit.WHITE,UiKit.XBOLD,0,true),
+            w - 8);
+         if(here)
+         {
+            return;
+         }
+         var act:Function = mapPicker(uint(map[0]));
+         card.addEventListener(MouseEvent.CLICK,clicked(act));
+         items.push({"kind":"button","act":act,"sprite":card,"parent":grid,"width":w,"height":picH + 26});
+      }
+
+      private static function clicked(act:Function) : Function
+      {
+         return function(e:MouseEvent):void
+         {
+            e.stopPropagation();
+            act();
+         };
+      }
+
+      private function setPicker(i:int) : Function
+      {
+         return function():void
+         {
+            mapSet = i;
+            build();
+         };
       }
 
       private static function noop() : void

@@ -108,7 +108,7 @@ package bh.platform
       {
          if(rating >= VALHALLAN)
          {
-            return "TOP RANK";
+            return "";
          }
          var next:int = (int(Math.max(0,rating) / STEP) + 1) * STEP;
          return (next - rating) + " TO " + tierName(next);
@@ -226,26 +226,27 @@ package bh.platform
                cs.var_13266.var_4483.stage != null)
             {
                var ladder:String = lobbyLadder(cs);
-               var card:Object = ladder != null ? ServerStats.get("ranked:" + ladder) : null;
-               var team:Object = ladder == "2v2" ? teamCard(cs) : null;
-               if(team != null && team.rating != null)
+               var pair:Array = ladder == "2v2" ? lobbyPair(cs) : null;
+               var card:Object = null;
+               if(pair != null)
                {
-                  card = team;
+                  card = pair.length == 2 ? teamCard(pair[1]) : null;
+               }
+               else if(ladder != null)
+               {
+                  card = ServerStats.get("ranked:" + ladder);
                }
                if(card != null && card.rating != null)
                {
                   lobbyCard = card;
                   lobbyLegends = ladder == "1v1" ? legends(cs) : null;
-                  lobbyMates = ladder == "2v2" && !card.team ? mates(cs,s) : null;
+                  lobbyMates = pair != null ? mates(cs) : null;
                   lobbyName = ladder;
                   var covers:Array = [DisplayObject(cs.var_13266.var_4483),cs.var_13266.var_7696 != null ? cs.var_13266.var_7696.clip : null];
                   var summaries:Array = [cs.mSeasonalSummary2v2_A,cs.mSeasonalSummary2v2_B];
                   for(var bi:int = 0; bi < 2; bi++)
                   {
-                     if(ladder == "1v1" || card.team || mateKnown(bi))
-                     {
-                        covers.push(shownBox(summaries[bi]));
-                     }
+                     covers.push(shownBox(summaries[bi]));
                   }
                   hide(covers);
                   draw(s,"lobby",drawLobby,Layers.screenOf(DisplayObject(cs.var_13266.var_4483)));
@@ -260,12 +261,6 @@ package bh.platform
          }
       }
 
-      private static function mateKnown(i:int) : Boolean
-      {
-         var m:Object = lobbyMates != null ? lobbyMates[i] : null;
-         return m != null && m.card != null && m.card.rating != null;
-      }
-
       private static function shownBox(box:Object) : DisplayObject
       {
          if(box == null || box.var_4483 == null || box.var_6052 == null)
@@ -276,44 +271,66 @@ package bh.platform
          return box.var_6052.isActive ? DisplayObject(box.var_4483) : null;
       }
 
-      private static function mates(cs:Object, s:Stage) : Array
-      {
-         var members:Object = cs.owner.var_6244.var_1751;
-         if(members == null || members.length < 1)
-         {
-            return null;
-         }
-         var out:Array = [];
-         var boxes:Array = [cs.mSeasonalSummary2v2_A,cs.mSeasonalSummary2v2_B];
-         for(var i:int = 0; i < Math.min(2,members.length); i++)
-         {
-            var m:Object = members[i];
-            var box:Object = boxes[i];
-            var r:Rectangle = box != null && box.var_4483 != null && box.var_4483.stage != null ?
-               DisplayObject(box.var_4483).getBounds(s) : null;
-            var shown:String = m.var_6307 != null && m.var_6307.var_14792 ? String(m.var_6307.var_14792) : String(m.var_7572 || "");
-            out.push({"name":shown,"card":ServerStats.get("ranked:2v2:" + uint(m.var_14656)),
-               "rect":r != null ? [Math.round(r.x),Math.round(r.y),Math.round(r.width),Math.round(r.height)] : null});
-         }
-         return out;
-      }
-
-      private static function teamCard(cs:Object) : Object
+      private static function mates(cs:Object) : Array
       {
          var members:Object = cs.owner.var_6244.var_1751;
          if(members == null || members.length != 2)
          {
             return null;
          }
+         var out:Array = [];
          for(var i:int = 0; i < 2; i++)
          {
-            var id:uint = uint(members[i].var_14656);
-            if(id != 0 && id != uint(cs.owner.var_14656))
-            {
-               return ServerStats.get("ranked:team:" + id);
-            }
+            var m:Object = members[i];
+            var id:uint = uint(m.var_14656);
+            var shown:String = m.var_6307 != null && m.var_6307.var_14792 ? String(m.var_6307.var_14792) : String(m.var_7572 || "");
+            out.push({"id":id,"name":shown,"card":id != 0 ? ServerStats.get("ranked:2v2:" + id) : null});
          }
-         return null;
+         return out;
+      }
+
+      private static function inParty() : Boolean
+      {
+         try
+         {
+            var members:Object = ScreenManager.var_4257.owner.var_6244.var_1751;
+            return members != null && members.length == 2;
+         }
+         catch(e:Error)
+         {
+         }
+         return false;
+      }
+
+      private static function lobbyPair(cs:Object) : Array
+      {
+         var members:Object = cs.owner.var_6244.var_1751;
+         if(members == null || members.length != 2)
+         {
+            return null;
+         }
+         var me:uint = uint(cs.owner.var_14656);
+         var a:uint = uint(members[0].var_14656);
+         var b:uint = uint(members[1].var_14656);
+         if(me == 0 || a == 0 || b == 0 || a == b)
+         {
+            return [];
+         }
+         if(a == me)
+         {
+            return [me,b];
+         }
+         if(b == me)
+         {
+            return [me,a];
+         }
+         return [];
+      }
+
+      private static function teamCard(mate:uint) : Object
+      {
+         var c:Object = ServerStats.get("ranked:team:" + mate);
+         return c != null && c.team ? c : null;
       }
 
       private static function lobbyLadder(cs:Object) : String
@@ -400,7 +417,7 @@ package bh.platform
             {
                var m:Object = lobbyMates[mi];
                objs.push(m.card);
-               small += "|" + m.name + ":" + m.rect;
+               small += "|" + m.id + ":" + m.name;
             }
          }
          var key:String = kind + "@" + s.stageWidth + "x" + s.stageHeight + ":" + small;
@@ -759,7 +776,7 @@ package bh.platform
          {
             sx = stat(g,"WIN %",winRate(int(change.wins),games),sx,sy,sc) + 28 * sc;
          }
-         if(int(change.rank) > 0)
+         if(int(change.rank) > 0 && !placing && !(ladder == "2V2" && inParty()))
          {
             stat(g,"RANK",String("#" + change.rank),sx,sy,sc);
          }
@@ -822,7 +839,12 @@ package bh.platform
          var colW:Number = (w - 2 * pad) / 4;
          var wins:int = card.wins != null ? int(card.wins) : 0;
          var cells:Array = [["BEST",card.peak != null ? String(card.peak) : String(rating)],["WINS",String(wins)],
-            ["WIN %",winRate(wins,games)],["RANK",int(card.rank) > 0 ? "#" + card.rank : "-"]];
+            ["WIN %",winRate(wins,games)]];
+         if(!placing && int(card.rank) > 0)
+         {
+            cells.push(["RANK","#" + card.rank]);
+         }
+         colW = (w - 2 * pad) / cells.length;
          for(var i:int = 0; i < cells.length; i++)
          {
             var cxm:Number = x + pad + colW * i + colW / 2;
@@ -882,7 +904,7 @@ package bh.platform
          var legendRows:int = lobbyLegends == null ? 1 : (lobbyLegends[0] != null ? 1 : 0) + (lobbyLegends[1] != null ? 1 : 0);
          var last:Array = c.last is Array ? (c.last as Array).slice(0,12) : [];
          var showLast:Boolean = last.length > 0 || int(c.games) == 0;
-         var h:Number = Math.max(248,(showLast ? 222 : 176) + 44 * Math.max(1,legendRows)) * sc;
+         var h:Number = Math.max(248,(showLast ? 222 : 176) + 44 * (lobbyMates != null ? 0 : Math.max(1,legendRows))) * sc;
          var x:Number = s.stageWidth / 2 - 316 * sc;
          var y:Number = 532 * sc;
          panel(g,x,y,w,h,sc);
@@ -900,12 +922,12 @@ package bh.platform
          var cx:Number = x + col + 8 * sc;
          var right:Number = x + w - 22 * sc;
          UiKit.text(g,"ELO RATING",cx,y + 60 * sc,13 * sc,LABEL,UiKit.XBOLD);
-         UiKit.text(g,String(rating),cx,y + 74 * sc,38 * sc,0xFFFFFF,UiKit.XBOLD);
+         UiKit.text(g,rating > 0 ? String(rating) : "-",cx,y + 74 * sc,38 * sc,0xFFFFFF,UiKit.XBOLD);
          var sx:Number = cx + 128 * sc;
-         sx = stat(g,"BEST ELO",String(c.peak),sx,y + 62 * sc,sc) + 22 * sc;
+         sx = stat(g,"BEST ELO",int(c.peak) > 0 ? String(c.peak) : "-",sx,y + 62 * sc,sc) + 22 * sc;
          sx = stat(g,"WINS",String(c.wins),sx,y + 62 * sc,sc) + 22 * sc;
          sx = stat(g,"WIN %",winRate(int(c.wins),games),sx,y + 62 * sc,sc) + 22 * sc;
-         if(int(c.rank) > 0)
+         if(!placing && int(c.rank) > 0)
          {
             stat(g,"RANK","#" + c.rank,sx,y + 62 * sc,sc);
          }
@@ -942,19 +964,20 @@ package bh.platform
          var ry:Number = y + (showLast ? 216 : 170) * sc;
          if(lobbyLegends == null)
          {
+            if(lobbyMates != null)
+            {
+               for(var mi:int = 0; mi < lobbyMates.length; mi++)
+               {
+                  mateCard(g,lobbyMates[mi],mi,x + w / 2,y + h,s,sc);
+               }
+               return;
+            }
             if(c.team)
             {
                membersLine(g,c.members as Array,cx,ry,right,sc);
                return;
             }
             teammateLine(g,c.teammate,cx,ry,right,sc);
-            for(var mi:int = 0; lobbyMates != null && mi < lobbyMates.length; mi++)
-            {
-               if(mateKnown(mi))
-               {
-                  mateCard(g,lobbyMates[mi],sc);
-               }
-            }
             return;
          }
          var best:Array = lobbyLegends[0];
@@ -1149,18 +1172,19 @@ package bh.platform
          UiKit.text(g,"TEAM",right - v.width / 2,y + 26 * sc,10 * sc,LABEL,UiKit.XBOLD,0,true);
       }
 
-      private static function mateCard(g:Sprite, m:Object, sc:Number) : void
+      private static function mateCard(g:Sprite, m:Object, slot:int, mid:Number, top:Number, s:Stage, sc:Number) : void
       {
-         if(m == null || m.rect == null)
+         if(m == null)
          {
             return;
          }
          var c:Object = m.card;
          var last:Array = c != null && c.last is Array ? (c.last as Array).slice(0,5) : [];
          var w:Number = 350 * sc;
-         var h:Number = (last.length > 0 || c != null && int(c.rank) > 0 ? 162 : 124) * sc;
-         var x:Number = m.rect[0] + m.rect[2] / 2 - w / 2;
-         var y:Number = m.rect[1] + m.rect[3] / 2 - h / 2;
+         var h:Number = (last.length > 0 ? 162 : 124) * sc;
+         var gap:Number = 16 * sc;
+         var x:Number = Math.round(slot == 0 ? mid - gap / 2 - w : mid + gap / 2);
+         var y:Number = Math.round(Math.min(top + 16 * sc,s.stageHeight - h - 8 * sc));
          panel(g,x,y,w,h,sc);
          var pad:Number = 14 * sc;
          UiKit.fit(UiKit.text(g,String(m.name).toUpperCase(),x + pad,y + 8 * sc,15 * sc,0xFFFFFF,UiKit.XBOLD),w - 120 * sc);
@@ -1184,7 +1208,7 @@ package bh.platform
          sx = stat(g,"BEST",String(c.peak),sx,y + 58 * sc,sc) + 12 * sc;
          sx = stat(g,"WINS",String(c.wins),sx,y + 58 * sc,sc) + 12 * sc;
          stat(g,"WIN %",winRate(int(c.wins),games),sx,y + 58 * sc,sc);
-         if(last.length == 0 && int(c.rank) <= 0)
+         if(last.length == 0)
          {
             return;
          }
@@ -1200,11 +1224,6 @@ package bh.platform
             var bx:Number = x + pad + 58 * sc + k * 24 * sc;
             UiKit.rect(g,bx,ly + 2 * sc,21 * sc,19 * sc,win ? 0x1E5A35 : 0x5A1E25,5 * sc);
             UiKit.text(g,win ? "W" : "L",bx + 10.5 * sc,ly + 3 * sc,12 * sc,win ? WIN : LOSS,UiKit.XBOLD,0,true);
-         }
-         if(int(c.rank) > 0)
-         {
-            var rk:TextField = UiKit.text(g,"#" + c.rank,0,ly + 1 * sc,16 * sc,0xFFFFFF,UiKit.XBOLD);
-            rk.x = x + w - pad - rk.width;
          }
       }
    }
