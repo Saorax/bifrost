@@ -279,14 +279,26 @@ package bh.platform
          {
             return;
          }
-         try
+         var self:SettingsWindow = this;
+         typeText(labelOf(w),valueOf(w),26,function(v:String):void
          {
-            ScreenManager.var_11000.method_6837(game,w.var_11333,w.var_9809,w.var_3050);
-         }
-         catch(e:Error)
-         {
-            Platform.log(logName + ": text input failed: " + e.message);
-         }
+            try
+            {
+               var box:class_419 = ScreenManager.var_11000;
+               box.method_6837(game as class_433,w.var_11333,w.var_9809,w.var_3050);
+               box.method_201(v);
+               box.method_7498();
+            }
+            catch(e:Error)
+            {
+               Platform.log(logName + ": text input failed: " + e.message);
+            }
+            if(self.isActive && ScreenBase.focusedScreen !== self)
+            {
+               ScreenBase.setFocus(self);
+            }
+            refresh(true);
+         });
       }
 
       protected function itemAction(it:Object, dir:int) : Boolean

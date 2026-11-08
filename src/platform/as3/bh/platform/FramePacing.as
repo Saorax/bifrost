@@ -19,10 +19,12 @@ package bh.platform
       private static var stepped:Boolean = false;
       private static var alpha:Number = 0;
       private static var rollback:Boolean = false;
+      private static var corrected:Boolean = false;
       private static var modified:Boolean = false;
       private static var frames:uint = 0;
       private static var steps:uint = 0;
       private static var offStep:uint = 0;
+      private static var corrections:uint = 0;
       public static var on:Boolean = false;
 
       public function FramePacing()
@@ -137,16 +139,26 @@ package bh.platform
             spare = active;
             active = t;
             active.length = 0;
-            pace(g.levelLayer3D,PacedNode.CAMERA);
+            corrected = false;
             var players:Object = g.var_7050;
             for(var i:int = 0; i < int(players.length); i++)
             {
                var body:Object = players[i].var_11807 != null ? players[i].var_11807.mTheDO3D : null;
                if(body != null)
                {
-                  entry(body).legend = stamp;
+                  var ln:PacedNode = entry(body);
+                  ln.legend = stamp;
+                  if(!stepped && !rollback && ln.hasPrev && (Number(body.x) != ln.cx || Number(body.y) != ln.cy))
+                  {
+                     corrected = true;
+                  }
                }
             }
+            if(corrected)
+            {
+               corrections++;
+            }
+            pace(g.levelLayer3D,PacedNode.CAMERA);
             layer(g.var_580);
             layer(g.var_479);
             layer(g.var_6167);
@@ -184,11 +196,12 @@ package bh.platform
          if(frames > 0)
          {
             Platform.log("frame pacing: " + frames + " frames, " + steps + " with steps, " + offStep +
-               " moves between steps");
+               " moves between steps, " + corrections + " rollback corrections");
          }
          frames = 0;
          steps = 0;
          offStep = 0;
+         corrections = 0;
       }
 
       private static function entry(node:Object) : PacedNode
@@ -244,7 +257,10 @@ package bh.platform
          }
          else if(x != n.cx || y != n.cy || sx != n.csx || sy != n.csy)
          {
-            n.hasPrev = false;
+            if(!corrected)
+            {
+               n.hasPrev = false;
+            }
             offStep++;
          }
          n.cx = x;

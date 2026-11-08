@@ -48,6 +48,7 @@ package bh.mods.optionsscreen
    import flash.ui.Keyboard;
    import haxe.IMap;
    import flash.utils.getTimer;
+   import flash.utils.setTimeout;
 
    public class OptionsScreen extends BigWindow
    {
@@ -64,6 +65,7 @@ package bh.mods.optionsscreen
       private var describe:TextField;
       private var describeLabel:TextField;
       private var serverStatus:Object = {};
+      private var serversRefreshing:Boolean = false;
       private var addHost:TextField;
       private var addName:TextField;
       private var addProfile:TextField;
@@ -896,19 +898,33 @@ package bh.mods.optionsscreen
       private function probe(s:Object) : void
       {
          var key:String = s.host + ":" + s.port;
-         if(serverStatus[key] != null && getTimer() - serverStatus[key].at < 15000)
+         var old:Object = serverStatus[key];
+         if(old != null && (old.busy > 0 || getTimer() - old.at < 15000))
          {
             return;
          }
-         var st:Object = {"at":getTimer(),"state":"checking...","ping":-1,"info":null};
+         var st:Object = {"at":getTimer(),"state":old != null ? old.state : "checking...","ping":old != null ? old.ping : -1,
+            "info":old != null ? old.info : null,"busy":2};
          serverStatus[key] = st;
+         var settled:Function = function():void
+         {
+            st.busy--;
+            st.at = getTimer();
+            refreshServers();
+         };
          try
          {
             var sock:Socket = new Socket();
             var started:int = getTimer();
+            var answered:Boolean = false;
             sock.timeout = 4000;
             sock.addEventListener(Event.CONNECT,function(e:Event):void
             {
+               if(answered)
+               {
+                  return;
+               }
+               answered = true;
                st.state = "online";
                st.ping = getTimer() - started;
                try
@@ -918,12 +934,17 @@ package bh.mods.optionsscreen
                catch(err:Error)
                {
                }
-               refreshServers();
+               settled();
             });
             var down:Function = function(e:Event):void
             {
+               if(answered)
+               {
+                  return;
+               }
+               answered = true;
                st.state = "offline";
-               refreshServers();
+               settled();
             };
             sock.addEventListener(IOErrorEvent.IO_ERROR,down);
             sock.addEventListener(SecurityErrorEvent.SECURITY_ERROR,down);
@@ -932,8 +953,14 @@ package bh.mods.optionsscreen
             var ask:Function = function(scheme:String):void
             {
                var loader:URLLoader = new URLLoader();
+               var heard:Boolean = false;
                loader.addEventListener(Event.COMPLETE,function(e:Event):void
                {
+                  if(heard)
+                  {
+                     return;
+                  }
+                  heard = true;
                   try
                   {
                      st.info = JSON.parse(String(loader.data));
@@ -942,14 +969,22 @@ package bh.mods.optionsscreen
                   catch(err:Error)
                   {
                   }
-                  refreshServers();
+                  settled();
                });
                var failed:Function = function(e:Event):void
                {
+                  if(heard)
+                  {
+                     return;
+                  }
+                  heard = true;
                   if(scheme == "https")
                   {
                      ask("http");
+                     return;
                   }
+                  st.info = null;
+                  settled();
                };
                loader.addEventListener(IOErrorEvent.IO_ERROR,failed);
                loader.addEventListener(SecurityErrorEvent.SECURITY_ERROR,failed);
@@ -960,15 +995,25 @@ package bh.mods.optionsscreen
          catch(e:Error)
          {
             st.state = "offline";
+            st.busy = 0;
          }
       }
 
       private function refreshServers() : void
       {
-         if(tab == 3 && isActive && !typing())
+         if(serversRefreshing)
          {
-            rebuildKeepFocus();
+            return;
          }
+         serversRefreshing = true;
+         setTimeout(function():void
+         {
+            serversRefreshing = false;
+            if(tab == 3 && isActive && !typing())
+            {
+               rebuildKeepFocus();
+            }
+         },100);
       }
 
       private function buildServers() : void
@@ -1418,6 +1463,14 @@ package bh.mods.optionsscreen
             "The game's own option from its keyboard Controls screen. Saved at once.",function(dir:int):void
             {
                mapper.var_7146 = !mapper.var_7146;
+               saveKeys();
+            },!multi);
+         y += 31;
+         row(left,y,RW,localizedKey("UI_ControllerDevices_PickUpWithQuick").toUpperCase(),!mapper.var_7262 ? "On" : "Off",
+            "Light attack also picks up weapons and items, as the throw key does. The game's own keyboard option from its " +
+            "old controller settings. Saved at once.",function(dir:int):void
+            {
+               mapper.var_7262 = !mapper.var_7262;
                saveKeys();
             },!multi);
          y += 31;
