@@ -128,15 +128,36 @@ def copy(src: Path, dst: Path) -> None:
         shutil.copy2(src, dst)
 
 
+def refresh_args(engine: Path) -> list[str]:
+    return ["tools/port_version_build.py", "run", "--version", VERSION, "--", "bifrost_export.py", "--out",
+            engine.as_posix(), "--install-source", f"build/game-test/port-{VERSION}", "--no-build"]
+
+
 def refresh_command(engine: Path) -> str:
-    return (f'python tools/port_version_build.py run --version {VERSION} -- bifrost_export.py --out "{engine.as_posix()}" '
-            f"--install-source build/game-test/port-{VERSION} --no-build")
+    return "python " + " ".join(f'"{a}"' if " " in a else a for a in refresh_args(engine))
 
 
-def check_engine(engine: Path) -> None:
+def refresh_engine(engine: Path) -> subprocess.CompletedProcess:
+    return subprocess.run([sys.executable, *refresh_args(engine)], cwd=ROOT, capture_output=True, text=True)
+
+
+def check_engine(engine: Path, refresh: bool = True) -> None:
     problem = engine_stamp.stale(engine, ROOT, VERSION)
-    if problem:
+    if not problem:
+        return
+    if not refresh:
         raise KitError(f"{engine}: {problem}. refresh it first:\n  {refresh_command(engine)}")
+    print(f"player kit: {engine}: {problem}; exporting it again", flush=True)
+    started = time.monotonic()
+    out = refresh_engine(engine)
+    tail = (out.stdout[-2000:] + out.stderr[-2000:]).strip()
+    if out.returncode != 0:
+        raise KitError(f"{engine}: {problem}, and exporting it again failed (exit {out.returncode}):\n{tail}\n"
+                       f"the command:\n  {refresh_command(engine)}")
+    again = engine_stamp.stale(engine, ROOT, VERSION)
+    if again:
+        raise KitError(f"{engine}: still stale after exporting it again ({again}):\n{tail}")
+    print(f"player kit: exported {engine} again in {time.monotonic() - started:.0f} s", flush=True)
 
 
 def build(out: Path, engine: Path, server: str | None = None, release: str | None = None) -> dict:
