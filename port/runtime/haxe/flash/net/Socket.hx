@@ -60,7 +60,7 @@ class Socket extends EventDispatcher {
                     dispatchEvent(new IOErrorEvent(IOErrorEvent.IO_ERROR, false, false, text, 2031));
             }
         }
-        pumping = tcp.connected;
+        pumping = tcp.connected || tcp.connecting;
         return pumping;
     }
 

@@ -42,7 +42,7 @@ class BuiltinExtensions {
             .define("SteamAir_ActivateGameOverlayToUser", none)
             .define("SteamAir_GetSteamOrder", (_) -> ([] : Array<Dynamic>))
             .define("SteamAir_GetIcon", none)
-            .define("SteamAir_GetPersonaID", (_) -> ("0" : Dynamic))
+            .define("SteamAir_GetPersonaID", (_) -> (#if bifrost GuestId.forInstall() #else "" #end : Dynamic))
             .define("SteamAir_GetLanguage", (_) -> ("english" : Dynamic))
             .define("SteamAir_ActivateGameOverlayToStore", none)
             .define("SteamAir_BIsDLCInstalled", yes)
