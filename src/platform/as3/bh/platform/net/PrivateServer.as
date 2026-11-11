@@ -30,6 +30,10 @@ package bh.platform.net
 
       public static var p2pRelayOnly:Boolean = false;
 
+      public static var p2pTurn:Boolean = true;
+
+      public static var p2pTurnAlways:Boolean = false;
+
       public static var p2pSmoothing:Boolean = true;
 
       public static var p2pSmoothingMs:Number = 100;
@@ -63,6 +67,8 @@ package bh.platform.net
             p2pDelaySet = cfg.p2p_delay_ms != null && !isNaN(Number(cfg.p2p_delay_ms));
             p2pDelay = p2pDelaySet ? uint(Math.max(16,Math.min(240,Math.round(Number(cfg.p2p_delay_ms) / 16) * 16))) : 48;
             p2pRelayOnly = String(cfg.p2p || "") == "relay";
+            p2pTurn = cfg.p2p_turn !== false;
+            p2pTurnAlways = cfg.p2p_turn == "always";
             p2pSmoothing = cfg.p2p_smoothing !== false;
             p2pSmoothingMs = cfg.p2p_smoothing_ms != null && Number(cfg.p2p_smoothing_ms) > 0 ?
                Math.min(1000,Number(cfg.p2p_smoothing_ms)) : 100;

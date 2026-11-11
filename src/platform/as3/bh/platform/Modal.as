@@ -33,8 +33,7 @@ package bh.platform
             shownTitle = title;
             var c:class_438 = new class_438();
             shownConfig = c;
-            c.var_14896 = long || text != null && (text.length > LONG_TEXT || text.indexOf("
-") >= 0) ? class_435.Long :
+            c.var_14896 = long || text != null && (text.length > LONG_TEXT || text.indexOf("\n") >= 0) ? class_435.Long :
                class_435.Normal;
             c.var_756 = null;
             c.var_8015 = title;
@@ -105,8 +104,7 @@ package bh.platform
             tf.visible = lt.var_2544.visible;
             lt.var_2544 = tf;
          }
-         lt.var_3517 = lt.var_2348 = lt.var_9020 = "
-";
+         lt.var_3517 = lt.var_2348 = lt.var_9020 = "\n";
       }
 
       public static function close(title:String) : Boolean

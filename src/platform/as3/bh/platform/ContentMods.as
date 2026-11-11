@@ -419,6 +419,14 @@ package bh.platform
                table = "CompanionTypes";
                name = item.var_3857;
                break;
+            case "Moniker":
+               table = "MonikerTypes";
+               name = item.var_5322;
+               break;
+            case "EmitterGroup":
+               table = "EmitterGroupTypes";
+               name = item.var_2065;
+               break;
             default:
                return false;
          }
@@ -610,7 +618,12 @@ package bh.platform
                }
                for(c = 0; c < header.length; c++)
                {
-                  if(fields[c] == "@id")
+                  if(fields[c] == "@id" && HASHED_IDS[tableName + "/" + header[c]] != null)
+                  {
+                     fields[c] = String(hashedId(key,usedCsvIds(lines,c),HASHED_IDS[tableName + "/" + header[c]]));
+                     report.push("id " + tableName + "/" + header[c] + " = " + fields[c] + " for " + key + " (" + mod.id + ")");
+                  }
+                  else if(fields[c] == "@id")
                   {
                      if(nextIds[c] == null)
                      {
@@ -624,7 +637,11 @@ package bh.platform
                      var g:* = column[fields[c].substr(4)];
                      var gv:String = g == null ? "" : (fields[g] != "" ? fields[g] : (base != null && g < base.length ? base[g] : ""));
                      var gk:String = c + "/" + gv;
-                     if(nextIds[gk] == null)
+                     if(GROUP_INDEX[header[c]] != null && g != null)
+                     {
+                        nextIds[gk] = lowestFreeCsv(lines,c,int(g),gv);
+                     }
+                     else if(nextIds[gk] == null)
                      {
                         nextIds[gk] = maxCsvField(lines,c,g == null ? -1 : int(g),gv) + 1;
                      }
@@ -1013,6 +1030,14 @@ package bh.platform
 
       private static const NOT_IDS:Object = {"SteamAppID":true,"AppID":true};
 
+      private static const HASHED_IDS:Object = {"HeroTypes/HeroID":[1000,64999]};
+
+      private static const ID_LIMITS:Object = {"TauntTypes/TauntID":1023,"SpawnBotTypes/SpawnBotID":1023,
+         "TrailEffectTypes/TrailEffectID":1023,"SeasonBorderTypes/SeasonBorderID":1023,"ColorSchemeTypes/ColorSchemeID":1024};
+
+      private static const STRICT_TABLES:Object = {"TauntTypes":true,"EmojiTypes":true,"SpawnBotTypes":true,"TrailEffectTypes":true,
+         "SeasonBorderTypes":true,"MonikerTypes":true};
+
       private static function isIdColumn(name:String, values:Array) : Boolean
       {
          if(name.length < 3 || name.substr(name.length - 2) != "ID" || NOT_IDS[name] || values.length == 0)
@@ -1242,6 +1267,155 @@ package bh.platform
             }
          }
          return best;
+      }
+
+      private static function lowestFreeCsv(lines:Array, column:int, group:int, groupValue:String) : int
+      {
+         var used:Object = {};
+         for(var i:int = 1; i < lines.length; i++)
+         {
+            var cells:Array = splitCsv(stripCr(lines[i]));
+            if(group < cells.length && column < cells.length && cells[group] == groupValue && /^\s*-?\d+\s*$/.test(cells[column]))
+            {
+               used["i" + int(cells[column])] = true;
+            }
+         }
+         var free:int = 1;
+         while(used["i" + free])
+         {
+            free++;
+         }
+         return free;
+      }
+
+      internal static function nameHash(name:String) : Number
+      {
+         var h:Number = 2166136261;
+         for(var i:int = 0; i < name.length; i++)
+         {
+            h = Number((uint(h) ^ name.charCodeAt(i)) >>> 0);
+            h = (h * 403 + (h % 256) * 16777216) % 4294967296;
+         }
+         return h;
+      }
+
+      internal static function hashedId(name:String, used:Object, range:Array) : int
+      {
+         var low:int = int(range[0]);
+         var span:int = int(range[1]) - low + 1;
+         var start:int = int(nameHash(name) % span);
+         for(var n:int = 0; n < span; n++)
+         {
+            var id:int = low + (start + n) % span;
+            if(!used["i" + id])
+            {
+               return id;
+            }
+         }
+         return 0;
+      }
+
+      private static function usedXmlIds(root:Xml, tag:String) : Object
+      {
+         var used:Object = {};
+         for each(var row:Xml in elements(root))
+         {
+            var text:String = fieldText(row,tag);
+            if(text != null && /^\s*-?\d+\s*$/.test(text))
+            {
+               used["i" + int(text)] = true;
+            }
+         }
+         return used;
+      }
+
+      private static function usedCsvIds(lines:Array, column:int) : Object
+      {
+         var used:Object = {};
+         for(var i:int = 1; i < lines.length; i++)
+         {
+            var cells:Array = splitCsv(stripCr(lines[i]));
+            if(column < cells.length && /^\s*-?\d+\s*$/.test(cells[column]))
+            {
+               used["i" + int(cells[column])] = true;
+            }
+         }
+         return used;
+      }
+
+      private static function tagsOf(root:Xml) : Object
+      {
+         var out:Object = {};
+         for each(var row:Xml in elements(root))
+         {
+            for each(var child:Xml in elements(row))
+            {
+               out[child.var_4402] = true;
+            }
+         }
+         return out;
+      }
+
+      private static function dropUnknownTags(row:Xml, known:Object, tableName:String, key:String, modId:String) : void
+      {
+         for each(var child:Xml in elements(row))
+         {
+            if(!known[child.var_4402])
+            {
+               row.removeChild(child);
+               report.push("column dropped " + tableName + "/" + key + ": " + child.var_4402 + " is no column of " + tableName +
+                  " (the game stops loading on one) (" + modId + ")");
+            }
+         }
+      }
+
+      private static function keepOneDefaultEmoji(root:Xml, row:Xml, key:String, modId:String) : void
+      {
+         var flag:String = fieldText(row,"DefaultUnlocked");
+         if(flag == null || String(flag).toLowerCase() != "true")
+         {
+            return;
+         }
+         var category:String = fieldText(row,"Category");
+         for each(var other:Xml in elements(root))
+         {
+            var otherFlag:String = fieldText(other,"DefaultUnlocked");
+            if(otherFlag != null && String(otherFlag).toLowerCase() == "true" && fieldText(other,"Category") == category &&
+               keyValues(other) != "Template")
+            {
+               for each(var child:Xml in elements(row))
+               {
+                  if(child.var_4402 == "DefaultUnlocked")
+                  {
+                     setText(child,"FALSE");
+                  }
+               }
+               report.push("emoji " + key + " not a default: " + keyValues(other) + " is already the default of " + category +
+                  " (two defaults in one category stop the game) (" + modId + ")");
+               return;
+            }
+         }
+      }
+
+      private static function freeIdBelow(root:Xml, tag:String, limit:int) : int
+      {
+         var used:Object = {};
+         for each(var row:Xml in elements(root))
+         {
+            var text:String = fieldText(row,tag);
+            if(text != null && /^\s*-?\d+\s*$/.test(text))
+            {
+               used["i" + int(text)] = true;
+            }
+         }
+         for(var id:int = 1; id < limit; id++)
+         {
+            if(!used["i" + id])
+            {
+               return id;
+            }
+         }
+         return 0;
       }
 
       private static var filledAnimations:Object = {};
@@ -1874,10 +2048,15 @@ package bh.platform
          var touched:Object = {};
          var changedRows:int = 0;
          var idTags:Object = xmlIdTags(root as Xml);
+         var knownTags:Object = null;
          recordXmlNames(tableName,root as Xml);
          for each(var mod:Object in mods)
          {
             var rows:Array = mod.tables[tableName];
+            if(rows != null && STRICT_TABLES[tableName] && knownTags == null)
+            {
+               knownTags = tagsOf(root as Xml);
+            }
             if(rows == null)
             {
                continue;
@@ -1933,15 +2112,37 @@ package bh.platform
                {
                   enforceXmlIds(row,findRow(root as Xml,row) == null,idTags,tableName,key,mod.id);
                }
+               var refused:String = null;
                for each(var field:Xml in elements(row))
                {
-                  if(textOf(field) == "@id")
+                  if(textOf(field) == "@id" && HASHED_IDS[tableName + "/" + field.var_4402] != null)
+                  {
+                     var hid:int = hashedId(keyValues(row),usedXmlIds(root as Xml,field.var_4402),HASHED_IDS[tableName + "/" + field.var_4402]);
+                     if(hid <= 0)
+                     {
+                        refused = "no free " + field.var_4402;
+                        break;
+                     }
+                     setText(field,String(hid));
+                     report.push("id " + tableName + "/" + field.var_4402 + " = " + hid + " for " + key + " (" + mod.id + ")");
+                  }
+                  else if(textOf(field) == "@id")
                   {
                      if(nextIds[field.var_4402] == null)
                      {
                         nextIds[field.var_4402] = maxField(root as Xml,field.var_4402) + 1;
                      }
                      var id:int = nextIds[field.var_4402]++;
+                     var limit:* = ID_LIMITS[tableName + "/" + field.var_4402];
+                     if(limit != null && id >= int(limit))
+                     {
+                        id = freeIdBelow(root as Xml,field.var_4402,int(limit));
+                        if(id <= 0)
+                        {
+                           refused = "no free " + field.var_4402 + " below " + limit + " (the game stops loading at " + limit + " or more)";
+                           break;
+                        }
+                     }
                      setText(field,String(id));
                      report.push("id " + tableName + "/" + field.var_4402 + " = " + id + " for " + key + " (" + mod.id + ")");
                   }
@@ -1959,6 +2160,15 @@ package bh.platform
                      report.push("id " + tableName + "/" + field.var_4402 + " = " + gid + " for " + key + " (next free for " +
                         spec + " " + value + ", " + mod.id + ")");
                   }
+               }
+               if(refused != null)
+               {
+                  report.push("row skipped " + mod.id + " " + tableName + "/" + key + ": " + refused);
+                  continue;
+               }
+               if(knownTags != null)
+               {
+                  dropUnknownTags(row,knownTags,tableName,key,mod.id);
                }
                var appendOnly:Boolean = elements(row).length > 0;
                for each(var af:Xml in elements(row))
@@ -1985,6 +2195,10 @@ package bh.platform
                      {
                         setText(plus,textOf(plus).substr(1));
                      }
+                  }
+                  if(tableName == "EmojiTypes")
+                  {
+                     keepOneDefaultEmoji(root as Xml,row,key,mod.id);
                   }
                   (root as Xml).addChild(row);
                   if(added[tableName] == null)

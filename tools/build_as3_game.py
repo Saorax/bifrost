@@ -17,8 +17,8 @@ runs, stopping at the first failure:
 6. unless ``--no-mods``: ``abc_roundtrip.py disasm`` of that SWF into
    ``build/asasm-as3/<ver>``, ``apply_platform_bytecode.py`` (hooks inserted
    into the original bytecode, ``"mode": "bytecode"`` in patches.json), ``apply_mods.py`` into ``build/asasm-as3-modded/<ver>``,
-   (every mod in ``src/mods`` except those named with ``--without-mod``),
-   then ``abc_roundtrip.py build`` and ``verify``
+   (every mod in ``src/mods`` except those named with ``--without-mod``, plus each
+   ``--bytecode-mod`` from ``data/mods``), then ``abc_roundtrip.py build`` and ``verify``
    -> ``build/as3-modded/BrawlhallaAir.swf``.
 
 steps 3-5 are skipped when their inputs (the AS3 tree after step 2, the
@@ -143,6 +143,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--hook-test", action="store_true", help="build in the hook test mod (logs to Documents\\Bifrost\\bh-hooks.txt)")
     p.add_argument("--mod", action="append", default=[], help="platform mod to build in (src/platform/as3/bh/mods/<mod>)")
     p.add_argument("--no-cache", action="store_true", help="always compile, splice and rename back (no build cache)")
+    p.add_argument("--bytecode-mod", action="append", default=[],
+                   help="also apply this bytecode mod from data/mods (private), e.g. smoke_probe")
     p.add_argument("--without-mod", action="append", default=[],
                    help="leave out this src/mods asasm mod (for finding which one breaks a build), e.g. offline_switch")
     args = p.parse_args(argv)
@@ -183,14 +185,14 @@ def main(argv: list[str] | None = None) -> int:
     if not args.no_platform:
         step("bytecode hooks", ["apply_platform_bytecode.py", "--src", str(asasm), "--version", ver] + platform)
     only = []
-    if args.without_mod:
+    if args.without_mod or args.bytecode_mod:
         from tools.apply_mods import available_mods
         mods = available_mods(Path(mods_dir[1]) if mods_dir else None)
         unknown = sorted(set(args.without_mod) - set(mods))
         if unknown:
             print(f"build_as3_game: unknown --without-mod {unknown}; mods: {mods}", file=sys.stderr)
             return 2
-        only = [a for m in mods if m not in args.without_mod for a in ("--mod", m)]
+        only = [a for m in mods + args.bytecode_mod if m not in args.without_mod for a in ("--mod", m)]
     step("apply mods", ["apply_mods.py", "--swf", str(named), "--src", str(asasm), "--out", str(modded)] + only + mods_dir)
     step("assemble", ["abc_roundtrip.py", "build", "--src", str(modded), "--swf", str(named), "--out", str(out)])
     step("verify", ["abc_roundtrip.py", "verify", "--src", str(modded), "--out", str(out)])

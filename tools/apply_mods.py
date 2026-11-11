@@ -237,6 +237,13 @@ def apply_mod(tree: Path, mod_dir: Path, doc_class: str | None) -> list[str]:
     return log
 
 
+def mod_dir(name: str) -> Path:
+    for base in (MODS, MODS.parent / "data" / "mods", ROOT / "data" / "mods"):
+        if (base / name / "mod.json").is_file():
+            return base / name
+    raise ModError(f"no mod {name!r} in {MODS} or data/mods")
+
+
 def available_mods(folder: Path | None = None) -> list[str]:
     folder = folder or MODS
     return sorted(d.name for d in folder.iterdir() if (d / "mod.json").is_file()) if folder.exists() else []
@@ -275,9 +282,7 @@ def main():
     log = [f"document class: {doc}"]
     try:
         for name in names:
-            if not (MODS / name / "mod.json").is_file():
-                raise ModError(f"no mod {name!r} in {MODS}")
-            log += [f"[{name}] {x}" for x in apply_mod(out, MODS / name, doc)]
+            log += [f"[{name}] {x}" for x in apply_mod(out, mod_dir(name), doc)]
     except ModError as e:
         shutil.rmtree(out)
         sys.exit(f"apply_mods FAILED: {e}")

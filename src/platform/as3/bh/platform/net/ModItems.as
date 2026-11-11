@@ -116,9 +116,30 @@ package bh.platform.net
          }
       }
 
+      public static function roomHost() : uint
+      {
+         try
+         {
+            return uint(Object(GameApp.mainInstance).var_13259.var_6244.var_2468);
+         }
+         catch(e:Error)
+         {
+         }
+         return 0;
+      }
+
+      public static function knows(player:uint) : Boolean
+      {
+         return player != 0 && known[player] != null;
+      }
+
       public static function id(table:String, player:uint, value:uint, bot:Boolean = false) : uint
       {
-         if(bot || value == 0 || player == 0)
+         if(bot)
+         {
+            player = roomHost();
+         }
+         if(value == 0 || player == 0)
          {
             return value;
          }
@@ -139,7 +160,11 @@ package bh.platform.net
 
       public static function weapons(player:uint, value:uint, bot:Boolean = false) : uint
       {
-         if(bot || player == 0 || known[player] == null)
+         if(bot)
+         {
+            player = roomHost();
+         }
+         if(player == 0 || known[player] == null)
          {
             return value;
          }

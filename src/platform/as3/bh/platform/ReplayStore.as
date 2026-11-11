@@ -188,7 +188,7 @@ package bh.platform
 
       private static function statsFile(name:String) : File
       {
-         return Platform.dataFile(STATS + "/" + name.replace(/\.replay$/,"").replace(/[\\\/:*?"<>|]/g,"_") + ".json");
+         return Platform.dataFile(STATS + "/" + name.replace(/\.replay$/,"").replace(/[\\\/:*?\x22<>|]/g,"_") + ".json");
       }
 
       private static function notesOf(name:String) : Object

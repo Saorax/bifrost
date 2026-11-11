@@ -323,7 +323,153 @@ package bh.platform.net
                }
             }
          }
+         if(type == UP_START)
+         {
+            p.writeUint(ITEMS_MARK);
+            p.writeUint(uint(Object(GameApp.mainInstance).var_13259.var_14656));
+         }
          return type == START ? readable(p) : p;
+      }
+
+      public static const ITEMS_MARK:uint = 0x4D4F4449;
+
+      private static var mapped:int = 0;
+
+      private static function remapStart(packet:NetPacket) : Boolean
+      {
+         try
+         {
+            var bits:Object = packet.var_5085;
+            if(bits == null || uint(bits.var_11198) % 8 != 0)
+            {
+               return false;
+            }
+            var at:uint = uint(bits.var_11198) / 8;
+            var host:uint = copyStart(new NetPacket(START,bits.var_15327,at),new NetPacket(START),0);
+            var me:uint = uint(Object(GameApp.mainInstance).var_13259.var_14656);
+            if(host == 0 || host == me || !ModItems.knows(host))
+            {
+               if(host != 0 && host != me)
+               {
+                  PrivateServer.log("spectate: no mod item list from the host " + host + "; its item ids are used as they are");
+               }
+               return false;
+            }
+            mapped = 0;
+            var w:NetPacket = new NetPacket(START);
+            copyStart(new NetPacket(START,bits.var_15327,at),w,host);
+            var r:NetPacket = readable(w);
+            PrivateServer.log("spectate: match set-up with the host " + host + "'s mod item ids turned into this PC's (" + mapped +
+               " changed)");
+            Object(GameApp.mainInstance).var_13259.linkUpdater.method_7460(r);
+            r.method_839();
+            return true;
+         }
+         catch(e:Error)
+         {
+            PrivateServer.log("spectate: match set-up ids not mapped (" + e.message + ")");
+         }
+         return false;
+      }
+
+      private static function itemOf(table:String, host:uint, v:uint) : uint
+      {
+         if(host == 0)
+         {
+            return v;
+         }
+         var out:uint = ModItems.id(table,host,v);
+         if(out != v)
+         {
+            mapped++;
+         }
+         return out;
+      }
+
+      private static function copyStart(r:NetPacket, w:NetPacket, host:uint) : uint
+      {
+         var k:int;
+         for(k = 0; k < 5; k++)
+         {
+            w.writeUint(r.readUint());
+         }
+         var heroes:uint = r.readUint();
+         w.writeUint(heroes);
+         var extras:Boolean = r.method_5885();
+         w.method_5184(extras);
+         var settings:class_166 = new class_166();
+         settings.method_1570(r);
+         settings.method_4231(w);
+         var count:uint = r.readUint();
+         w.writeUint(count);
+         for(var n:uint = 0; n < count; n++)
+         {
+            w.writeUint(r.readUint());
+            w.writeUint(r.readUint());
+            w.writeUint(r.readUint());
+            w.writeString(r.readString());
+            w.writeString(r.readString());
+            for(k = 0; k < 3; k++)
+            {
+               w.writeUint(r.readUint());
+            }
+            w.writeUint(itemOf("ColorSchemeTypes",host,r.readUint()));
+            w.writeUint(itemOf("SpawnBotTypes",host,r.readUint()));
+            w.writeUint(itemOf("CompanionTypes",host,r.readUint()));
+            w.writeUint(r.readUint());
+            w.writeUint(itemOf("TrailEffectTypes",host,r.readUint()));
+            w.writeUint(itemOf("PlayerThemeTypes",host,r.readUint()));
+            for(k = 0; k < 8; k++)
+            {
+               w.writeUint(itemOf("TauntTypes",host,r.readUint()));
+            }
+            w.method_6483(itemOf("TauntTypes",host,r.method_2544()));
+            w.method_6483(itemOf("TauntTypes",host,r.method_2544()));
+            while(r.method_5885())
+            {
+               w.method_5184(true);
+               w.writeUint(r.readUint());
+               w.writeUint(r.readUint());
+            }
+            w.method_5184(false);
+            w.method_6483(itemOf("avatarTypes",host,r.method_2544()));
+            for(k = 0; k < 3; k++)
+            {
+               w.writeUint(r.readUint());
+            }
+            w.method_6483(itemOf("MonikerTypes",host,r.method_2544()));
+            for(k = 0; k < int(heroes); k++)
+            {
+               w.writeUint(r.readUint());
+               w.writeUint(itemOf("costumeTypes",host,r.readUint()));
+               w.writeUint(r.readUint());
+               var weapons:uint = r.readUint();
+               var both:uint = host != 0 ? ModItems.weapons(host,weapons) : weapons;
+               if(both != weapons)
+               {
+                  mapped++;
+               }
+               w.writeUint(both);
+               w.writeUint(r.readUint());
+            }
+            if(extras)
+            {
+               var has:Boolean = r.method_5885();
+               w.method_5184(has);
+               if(has)
+               {
+                  w.method_6483(r.method_2544());
+                  w.writeUint(r.readUint());
+                  w.writeUint(r.readUint());
+               }
+            }
+         }
+         var rest:int = int(r.var_5085.var_15327.length) * 8 - int(r.var_5085.var_11198);
+         if(rest >= 8 && r.readUint() == ITEMS_MARK)
+         {
+            return r.readUint();
+         }
+         return 0;
       }
 
       public static function inputsPacket(batch:Array, type:int = INPUTS) : NetPacket
@@ -369,6 +515,10 @@ package bh.platform.net
 
       private static function onPacket(packet:Object) : Boolean
       {
+         if(int(packet.type) == START)
+         {
+            return remapStart(NetPacket(packet));
+         }
          if(int(packet.type) == ROOM || int(packet.type) == LEFT_ROOM)
          {
             earlyEnd = -1;

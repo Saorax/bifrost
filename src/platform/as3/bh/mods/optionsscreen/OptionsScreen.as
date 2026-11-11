@@ -14,6 +14,7 @@ package bh.mods.optionsscreen
    import bh.platform.GameMenus;
    import bh.platform.LaunchOptions;
    import bh.platform.ModSettings;
+   import bh.platform.MenuThemes;
    import bh.platform.ReplayKeep;
    import bh.platform.ReplaysWindow;
    import bh.platform.Platform;
@@ -766,6 +767,12 @@ package bh.mods.optionsscreen
             "is deleted. Replays you add to Favorites stay in Favorites.",function(dir:int):void
          {
             ReplayKeep.stepKeep(dir);
+         });
+         sectionEnd();
+         section(1,"MAIN MENU");
+         colRow("MENU THEME",MenuThemes.label(),MenuThemes.about(),function(dir:int):void
+         {
+            MenuThemes.step(dir);
          });
          sectionEnd();
          section(1,"SETTINGS PAGES");

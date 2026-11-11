@@ -136,10 +136,18 @@ def port(src_ver: str, dst_ver: str, out: Path | None = None) -> tuple[Path, Por
         return MOD_NAME.sub(lambda m: porter.class_file(m) if m.group(1) else porter.obfuscated(m.group(0)), text)
 
     n_mods = port_tree(ROOT / "src" / "mods", out / "mods", mods)
+    public_missing = dict(porter.missing)
+    n_private = 0
+    if (ROOT / "data" / "mods").is_dir():
+        n_private = port_tree(ROOT / "data" / "mods", out / "data" / "mods",
+                              lambda t: mods(FFDEC.sub(lambda m: porter.ffdec(m.group(0)), t)))
+    private_missing = {k: v for k, v in porter.missing.items() if k not in public_missing}
+    porter.missing = public_missing
     lines = [f"Ported src/platform and src/mods from {src_ver} to {dst_ver} (tools/port_platform.py).",
-             f"Files rewritten: platform {n_platform}, mods {n_mods}. Names translated: {len(porter.done)}; "
-             f"not translated: {len(porter.missing)}.", ""]
+             f"Files rewritten: platform {n_platform}, mods {n_mods}, private data/mods {n_private}. Names translated: "
+             f"{len(porter.done)}; not translated: {len(porter.missing)} (private: {len(private_missing)}).", ""]
     lines += [f"not translated {k}: {v}" for k, v in sorted(porter.missing.items())]
+    lines += [f"not translated in data/mods {k}: {v}" for k, v in sorted(private_missing.items())]
     lines += [f"{k} -> {v}" for k, v in sorted(porter.done.items())]
     (out / "PORT.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return out, porter

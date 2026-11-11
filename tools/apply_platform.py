@@ -98,8 +98,12 @@ def mod_list(mods: list[str]) -> str:
 
 def mod_folder(mod: str) -> Path:
     shipped = PLATFORM / "as3" / "bh" / "mods" / mod
-    private = PLATFORM.parents[1] / "data" / "mods" / mod
-    return private if not shipped.exists() and private.exists() else shipped
+    if shipped.exists():
+        return shipped
+    for private in (PLATFORM.parent / "data" / "mods" / mod, PLATFORM.parents[1] / "data" / "mods" / mod):
+        if private.exists():
+            return private
+    return shipped
 
 
 def mod_class(mod: str) -> str:

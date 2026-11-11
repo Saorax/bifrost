@@ -18,6 +18,9 @@ package bh.platform.net
    {
       public static const P2P_HELLO:int = 11011;
       public static const P2P_PEERS:int = 11012;
+      public static const TURN_OFFER:int = 11027;
+      public static const TURN_ADDRESS:int = 11028;
+      public static const TURN_PEERS:int = 11029;
 
       public static const MAGIC:uint = 0xBF02;
       public static const PING:uint = 1;
@@ -137,9 +140,9 @@ package bh.platform.net
          }
          for each(var peer:Object in peers)
          {
-            if(!peer.gone && (relayOnly || peer.direct == null))
+            if(!peer.gone && !usesDirect(peer))
             {
-               return "relay";
+               return peer.viaTurn ? "cloudflare" : "relay";
             }
          }
          return "direct";
@@ -147,6 +150,9 @@ package bh.platform.net
 
       private static var registered:Boolean = false;
       public static var pipe:Object = null;
+      private static var turn:TurnClient = null;
+      private static var turnTimer:Timer = null;
+      private static var turnRoom:uint = 0;
       private static var socket:DatagramSocket;
       private static var room:uint;
       private static var localId:uint;
@@ -497,7 +503,7 @@ package bh.platform.net
                wp.heard = getTimer();
                answered = answered || wp.samples.length + wp.relaySamples.length > 0;
                measured.push(wp.name + " " + int(wp.samples.length) + " direct / " + int(wp.relaySamples.length) +
-                  " relay round trips");
+                  " relay" + (wp.turnIp != null ? " / " + int(wp.turnSamples.length) + " Cloudflare" : "") + " round trips");
             }
             PrivateServer.log("P2P room " + room + ": pinged for " + warmedFor + " ms before the start (" +
                measured.join(", ") + ")");
@@ -520,7 +526,8 @@ package bh.platform.net
       {
          return {"id":id,"port":0,"addresses":[],"direct":null,"directPort":0,"rtt":-1,"heard":getTimer(),
             "confirmed":0,"ack":-1,"applied":-1,"pending":[],"state":null,"gone":false,"name":"player " + id,
-            "botPending":{},"botApplied":{},"samples":[],"relaySamples":[],"preferRelay":false,"pathChosen":false};
+            "botPending":{},"botApplied":{},"samples":[],"relaySamples":[],"preferRelay":false,"pathChosen":false,
+            "turnIp":null,"turnPort":0,"turnSamples":[],"turnChosen":false,"viaTurn":false};
       }
 
       private static function usesDirect(peer:Object) : Boolean
@@ -569,6 +576,217 @@ package bh.platform.net
             " (round trip " + d + " ms direct, " + r + " ms through the relay)");
       }
 
+      private static function chooseRelay(peer:Object) : void
+      {
+         if(peer.turnChosen || peer.turnIp == null || peer.turnSamples.length < 5 ||
+            peer.relaySamples.length < 5 && peer.turnSamples.length < 10)
+         {
+            return;
+         }
+         peer.turnChosen = true;
+         var t:int = median(peer.turnSamples);
+         var r:int = peer.relaySamples.length > 0 ? median(peer.relaySamples) : -1;
+         peer.viaTurn = r < 0 || t + 10 < r || PrivateServer.p2pTurnAlways;
+         if(peer.viaTurn)
+         {
+            peer.relaySamples = peer.turnSamples.concat();
+            peer.relayRtt = peer.turnRtt;
+            peer.lastRelayRtt = peer.lastTurnRtt;
+            peer.sentRelay = peer.sentTurn;
+            peer.answeredRelay = peer.answeredTurn;
+         }
+         PrivateServer.log("P2P room " + room + ": " + peer.name + "'s relay: " + (peer.viaTurn ? "Cloudflare" : "the server's") +
+            " (round trip " + t + " ms through Cloudflare, " + (r >= 0 ? r + " ms" : "no answer") + " through the server's relay)");
+      }
+
+      private static function dropTurn(peer:Object) : void
+      {
+         if(peer.viaTurn)
+         {
+            peer.relaySamples = [];
+            peer.relayRtt = null;
+            peer.lastRelayRtt = null;
+            peer.sentRelay = peer.answeredRelay = 0;
+         }
+         peer.turnIp = null;
+         peer.turnPort = 0;
+         peer.turnSamples = [];
+         peer.turnRtt = null;
+         peer.turnChosen = false;
+         peer.viaTurn = false;
+      }
+
+      private static function sendTurn(peer:Object, body:ByteArray) : Boolean
+      {
+         return turn != null && peer.turnIp != null && turn.send(peer.turnIp,peer.turnPort,body);
+      }
+
+      private static function onTurnOffer(packet:Object) : void
+      {
+         var offerRoom:uint = packet.readUint();
+         var host:String = packet.readString();
+         var ports:Array = [];
+         var n:uint = packet.readUint();
+         for(var i:uint = 0; i < n; i++)
+         {
+            var port:int = int(packet.readUint());
+            if(ports.length < 8)
+            {
+               ports.push(port);
+            }
+         }
+         var username:String = packet.readString();
+         var credential:String = packet.readString();
+         var expires:uint = packet.readUint();
+         if(!PrivateServer.p2pTurn || pipe != null || socket == null)
+         {
+            PrivateServer.log("P2P room " + offerRoom + ": Cloudflare relay offered, not used (" + (!PrivateServer.p2pTurn ?
+               "p2p_turn false in bh-server.json" : "no UDP socket") + ")");
+            return;
+         }
+         var now:int = getTimer();
+         if(offerRoom != turnRoom && turn != null)
+         {
+            turn.retirePeers();
+         }
+         turnRoom = offerRoom;
+         if(turn != null && turn.sameLogin(host,ports,username,credential) && (turn.ready || turn.state == "allocating"))
+         {
+            if(turn.ready)
+            {
+               sendTurnAddress(offerRoom,turn.relayedIp,turn.relayedPort);
+            }
+            return;
+         }
+         if(turn != null)
+         {
+            turn.close(now);
+         }
+         var client:TurnClient = new TurnClient(function(bytes:ByteArray, ip:String, to:int):void
+         {
+            if(socket != null)
+            {
+               socket.send(bytes,0,0,ip,to);
+            }
+         },host,ports,username,credential,expires);
+         turn = client;
+         client.log = function(line:String):void
+         {
+            PrivateServer.log("P2P " + line);
+         };
+         client.onReady = function(c:TurnClient):void
+         {
+            if(turn === client)
+            {
+               sendTurnAddress(turnRoom,c.relayedIp,c.relayedPort);
+            }
+         };
+         client.onFailed = function(why:String):void
+         {
+            if(turn === client)
+            {
+               sendTurnAddress(turnRoom,"",0);
+               for each(var p:Object in peers)
+               {
+                  p.viaTurn = false;
+               }
+            }
+         };
+         client.onData = function(ip:String, from:int, data:ByteArray):void
+         {
+            if(turn === client)
+            {
+               received(data,null,0,true);
+            }
+         };
+         client.start(now);
+         if(turnTimer == null)
+         {
+            turnTimer = new Timer(100);
+            turnTimer.addEventListener(TimerEvent.TIMER,function(e:TimerEvent):void
+            {
+               if(turn != null)
+               {
+                  turn.tick(getTimer());
+               }
+            });
+            turnTimer.start();
+         }
+      }
+
+      private static function sendTurnAddress(r:uint, ip:String, port:int) : void
+      {
+         try
+         {
+            var p:NetPacket = new NetPacket(TURN_ADDRESS);
+            p.writeUint(r);
+            p.writeString(ip || "");
+            p.writeUint(port);
+            Object(GameApp.mainInstance).var_13259.sendToServer(p);
+            p.method_839();
+         }
+         catch(e:Error)
+         {
+            PrivateServer.log("P2P: could not send the Cloudflare relay address: " + e.message);
+         }
+      }
+
+      private static function onTurnPeers(packet:Object) : void
+      {
+         var peersRoom:uint = packet.readUint();
+         var n:uint = packet.readUint();
+         var listed:Object = {};
+         var now:int = getTimer();
+         var got:Array = [];
+         for(var i:uint = 0; i < n; i++)
+         {
+            var id:uint = packet.readUint();
+            var ip:String = packet.readString();
+            var port:int = int(packet.readUint());
+            if(peersRoom != room || id == localId || turn == null)
+            {
+               continue;
+            }
+            listed[id] = true;
+            var peer:Object = peers[id];
+            if(peer == null)
+            {
+               peer = peers[id] = newPeer(id);
+               peerCount++;
+            }
+            if(peer.turnIp != ip || int(peer.turnPort) != port)
+            {
+               if(peer.turnIp != null)
+               {
+                  turn.retirePeer(peer.turnIp,peer.turnPort);
+               }
+               dropTurn(peer);
+               peer.turnIp = ip;
+               peer.turnPort = port;
+            }
+            turn.addPeer(ip,port,now);
+            got.push(peer.name);
+         }
+         if(peersRoom != room || turn == null)
+         {
+            return;
+         }
+         for(var pid:String in peers)
+         {
+            var gone:Object = peers[pid];
+            if(!listed[pid] && gone.turnIp != null)
+            {
+               turn.retirePeer(gone.turnIp,gone.turnPort);
+               dropTurn(gone);
+               PrivateServer.log("P2P room " + room + ": " + gone.name + " has no Cloudflare relay address now");
+            }
+         }
+         if(got.length > 0)
+         {
+            PrivateServer.log("P2P room " + room + ": Cloudflare relay addresses of " + got.join(", "));
+         }
+      }
+
       private static function end(why:String, abrupt:Boolean = true) : void
       {
          if(!active)
@@ -600,8 +818,10 @@ package bh.platform.net
          var paths:Array = [];
          for each(peer in peers)
          {
-            paths.push(peer.name + ": " + (peer.direct ? "direct " + peer.direct + ":" + peer.directPort : "relay" +
+            paths.push(peer.name + ": " + (usesDirect(peer) ? "direct " + peer.direct + ":" + peer.directPort :
+               (peer.viaTurn ? "Cloudflare relay" : "relay") +
                (peer.relayRtt != null ? ", " + peer.relayRtt + " ms best round trip through it" : "")) +
+               (!peer.viaTurn && peer.turnRtt != null ? ", " + peer.turnRtt + " ms best through Cloudflare" : "") +
                (peer.rtt >= 0 ? ", " + peer.rtt + " ms best round trip" : ""));
          }
          PrivateServer.log("P2P room " + room + " ended (" + why + "): " + (rollback ? "rollback, " + rollbacks + " rollbacks (" + merged + " late inputs merged into a later one, " + samePredicted + " late but as predicted, " +
@@ -652,6 +872,25 @@ package bh.platform.net
 
       private static function onPacket(packet:Object) : Boolean
       {
+         if(packet != null && (packet.type == TURN_OFFER || packet.type == TURN_PEERS))
+         {
+            try
+            {
+               if(packet.type == TURN_OFFER)
+               {
+                  onTurnOffer(packet);
+               }
+               else
+               {
+                  onTurnPeers(packet);
+               }
+            }
+            catch(e0:Error)
+            {
+               PrivateServer.log("P2P: could not read " + packet.type + ": " + e0.message);
+            }
+            return true;
+         }
          if(packet == null || packet.type != P2P_PEERS)
          {
             return false;
@@ -1677,6 +1916,9 @@ package bh.platform.net
             {
                socket.send(body,0,0,peer.direct,peer.directPort);
             }
+            else if(peer.viaTurn && sendTurn(peer,body))
+            {
+            }
             else if(relayPort != 0)
             {
                var wrapped:ByteArray = relayBody;
@@ -1843,7 +2085,15 @@ package bh.platform.net
             NetTune.smoothingMs = uint(Math.max(NetTune.smoothingMs,NetTune.smoothingFor(worst)));
             Smoothing.setMs(NetTune.smoothingMs);
          }
-         var path:String = direct && relayed ? "direct and through the relay" : (direct ? "direct" : "through the relay");
+         var relayName:String = "the relay";
+         for each(peer in peers)
+         {
+            if(!peer.gone && !usesDirect(peer) && peer.viaTurn)
+            {
+               relayName = "Cloudflare's relay";
+            }
+         }
+         var path:String = direct && relayed ? "direct and through " + relayName : (direct ? "direct" : "through " + relayName);
          var text:Array = NetTune.describe(worst,path,delay,fixed,rollback,smoothing,NetTune.smoothingMs);
          PrivateServer.log("P2P room " + room + ": network settings for the match: " + text.join("; ") + " (" + worst.samples +
             " round trips, 90th percentile " + worst.p90 + " ms)");
@@ -1877,7 +2127,12 @@ package bh.platform.net
             b.writeShort(NetTune.smoothingMs);
             sendTo(peer,b,true);
             peer.sentRelay = int(peer.sentRelay || 0) + 1;
+            if(!peer.turnChosen && sendTurn(peer,b))
+            {
+               peer.sentTurn = int(peer.sentTurn || 0) + 1;
+            }
             choosePath(peer);
+            chooseRelay(peer);
          }
       }
 
@@ -1898,6 +2153,11 @@ package bh.platform.net
             return -1;
          }
          var planned:int = planRtt(peer.relaySamples);
+         var viaTurn:int = peer.turnChosen ? -1 : planRtt(peer.turnSamples);
+         if(viaTurn >= 0 && (planned < 0 || viaTurn < planned))
+         {
+            return viaTurn;
+         }
          return planned >= 0 ? planned : (peer.relayRtt != null ? int(peer.relayRtt) : -1);
       }
 
@@ -2016,6 +2276,10 @@ package bh.platform.net
 
       private static function onDatagram(e:DatagramSocketDataEvent) : void
       {
+         if(turn != null && turn.owns(e.srcAddress,e.srcPort) && turn.received(e.data,e.srcAddress,e.srcPort,getTimer()))
+         {
+            return;
+         }
          received(e.data,e.srcAddress,e.srcPort);
       }
 
@@ -2024,7 +2288,7 @@ package bh.platform.net
          received(b,null,0);
       }
 
-      private static function received(b:ByteArray, srcAddress:String, srcPort:int) : void
+      private static function received(b:ByteArray, srcAddress:String, srcPort:int, viaTurn:Boolean = false) : void
       {
          try
          {
@@ -2046,7 +2310,7 @@ package bh.platform.net
             }
             receivedCount++;
             peer.heard = getTimer();
-            var viaRelay:Boolean = fromRelay(srcAddress,srcPort);
+            var viaRelay:Boolean = !viaTurn && fromRelay(srcAddress,srcPort);
             if(type == PING)
             {
                var pong:ByteArray = datagram(PONG);
@@ -2059,7 +2323,14 @@ package bh.platform.net
                {
                   agreeSmoothing(peer,b.readUnsignedShort());
                }
-               if(viaRelay)
+               if(viaTurn)
+               {
+                  if(!sendTurn(peer,pong))
+                  {
+                     sendTo(peer,pong,true);
+                  }
+               }
+               else if(viaRelay)
                {
                   sendTo(peer,pong,true);
                }
@@ -2071,6 +2342,31 @@ package bh.platform.net
                {
                   socket.send(pong,0,0,srcAddress,srcPort);
                }
+            }
+            else if(type == PONG && viaTurn)
+            {
+               var turned:int = int(uint(getTimer()) - b.readUnsignedInt());
+               if(turned >= 0)
+               {
+                  peer.lastTurnRtt = turned;
+                  addSample(peer.turnSamples,turned);
+                  peer.answeredTurn = int(peer.answeredTurn || 0) + 1;
+                  if(peer.turnRtt == null || turned < int(peer.turnRtt))
+                  {
+                     peer.turnRtt = turned;
+                  }
+                  if(peer.viaTurn)
+                  {
+                     peer.lastRelayRtt = turned;
+                     addSample(peer.relaySamples,turned);
+                     peer.answeredRelay = int(peer.answeredRelay || 0) + 1;
+                     if(peer.relayRtt == null || turned < int(peer.relayRtt))
+                     {
+                        peer.relayRtt = turned;
+                     }
+                  }
+               }
+               chooseRelay(peer);
             }
             else if(type == PONG && viaRelay)
             {

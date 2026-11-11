@@ -2601,6 +2601,29 @@
    "args": [
     "this"
    ]
+  },
+  {
+   "id": "hook-client-theme-pick",
+   "file": "ClientManager.as",
+   "function": "i/method/method_1737",
+   "where": "start",
+   "mode": "bytecode",
+   "call": "bh.platform:MenuThemes.pick",
+   "args": [
+    "param1"
+   ],
+   "sets_param": 1
+  },
+  {
+   "id": "hook-client-theme-started",
+   "file": "ClientManager.as",
+   "function": "i/method/Init",
+   "where": "end",
+   "mode": "bytecode",
+   "call": "bh.platform:MenuThemes.started",
+   "args": [
+    "this"
+   ]
   }
  ]
 }

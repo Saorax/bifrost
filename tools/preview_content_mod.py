@@ -98,6 +98,32 @@ def row_key(row: ET.Element) -> str:
 
 GROUP_INDEX = {"CostumeIndex": "OwnerHero"}
 NOT_IDS = {"SteamAppID", "AppID"}
+HASHED_IDS = {"HeroTypes/HeroID": (1000, 64999)}
+ID_LIMITS = {"TauntTypes/TauntID": 1023, "SpawnBotTypes/SpawnBotID": 1023, "TrailEffectTypes/TrailEffectID": 1023,
+             "SeasonBorderTypes/SeasonBorderID": 1023, "ColorSchemeTypes/ColorSchemeID": 1024}
+
+
+def name_hash(name: str) -> int:
+    h = 2166136261
+    units = name.encode("utf-16-le")
+    for i in range(0, len(units), 2):
+        h = ((h ^ int.from_bytes(units[i:i + 2], "little")) * 16777619) & 0xFFFFFFFF
+    return h
+
+
+def hashed_id(name: str, used: set[int], low: int, high: int) -> int:
+    span = high - low + 1
+    start = name_hash(name) % span
+    return next((low + (start + n) % span for n in range(span) if low + (start + n) % span not in used), 0)
+
+
+def used_ids(root: ET.Element, tag: str) -> set[int]:
+    return {int(c.text) for r in root for c in r if c.tag == tag and c.text and re.fullmatch(r"\s*-?\d+\s*", c.text)}
+
+
+def free_id_below(root: ET.Element, tag: str, limit: int) -> int:
+    used = {int(c.text) for r in root for c in r if c.tag == tag and c.text and re.fullmatch(r"\s*-?\d+\s*", c.text)}
+    return next((i for i in range(1, limit) if i not in used), 0)
 
 
 def is_id_column(name: str, values: list[str]) -> bool:
@@ -220,12 +246,27 @@ def apply(table: str, root: ET.Element, mods: list[dict]) -> list[str]:
                 (c for c in root if c.tag == row.tag and all(c.get(a) == row.get(a) for a in keys)), None)
             if keys:
                 lines += enforce_xml_ids(row, existing is None, id_tags, table, key, mod["id"])
+            refused = None
             for field in row:
-                if (field.text or "") == "@id":
+                if (field.text or "") == "@id" and f"{table}/{field.tag}" in HASHED_IDS:
+                    new_id = hashed_id(key_text(row), used_ids(root, field.tag), *HASHED_IDS[f"{table}/{field.tag}"])
+                    if new_id <= 0:
+                        refused = f"no free {field.tag}"
+                        break
+                    field.text = str(new_id)
+                    lines.append(f"id {table}/{field.tag} = {field.text} for {key} ({mod['id']})")
+                elif (field.text or "") == "@id":
                     if field.tag not in next_ids:
                         next_ids[field.tag] = max_field(root, field.tag) + 1
-                    field.text = str(next_ids[field.tag])
+                    new_id = next_ids[field.tag]
                     next_ids[field.tag] += 1
+                    limit = ID_LIMITS.get(f"{table}/{field.tag}")
+                    if limit is not None and new_id >= limit:
+                        new_id = free_id_below(root, field.tag, limit)
+                        if new_id <= 0:
+                            refused = f"no free {field.tag} below {limit} (the game stops loading at {limit} or more)"
+                            break
+                    field.text = str(new_id)
                     lines.append(f"id {table}/{field.tag} = {field.text} for {key} ({mod['id']})")
                 elif (field.text or "").startswith("@id/"):
                     spec = field.text[4:]
@@ -236,6 +277,9 @@ def apply(table: str, root: ET.Element, mods: list[dict]) -> list[str]:
                     field.text = str(next_ids[k])
                     next_ids[k] += 1
                     lines.append(f"id {table}/{field.tag} = {field.text} for {key} (next free for {spec} {value}, {mod['id']})")
+            if refused is not None:
+                lines.append(f"row skipped {table}/{key} ({mod['id']}): {refused}")
+                continue
             append_only = len(row) > 0 and all((f.text or "").startswith("+") for f in row) and not row.attrib.keys() - set(keys)
             if keys and not append_only:
                 if key in touched:
@@ -292,6 +336,14 @@ def apply_csv(table: str, text: str, mods: list[dict]) -> tuple[str, list[str]]:
         vals = [int(cells[c]) for l in lines[1:] if (cells := split_csv(strip(l))) and c < len(cells)
                 and (g is None or (g < len(cells) and cells[g] == gv)) and re.fullmatch(r"\s*-?\d+\s*", cells[c])]
         return max([0] + vals)
+
+    def lowest_free(c: int, g: int, gv: str) -> int:
+        used = {int(cells[c]) for l in lines[1:] if (cells := split_csv(strip(l))) and c < len(cells) and g < len(cells)
+                and cells[g] == gv and re.fullmatch(r"\s*-?\d+\s*", cells[c])}
+        free = 1
+        while free in used:
+            free += 1
+        return free
 
     def insert(line: str) -> int:
         at = len(lines)
@@ -354,7 +406,12 @@ def apply_csv(table: str, text: str, mods: list[dict]) -> tuple[str, list[str]]:
                         out_lines.append(f"id {table}/{col} {want} for {key} is taken for {owner}: the next free one is used ({mod['id']})")
                     fields[ci] = "@id/" + grp
             for c, v in enumerate(fields):
-                if v == "@id":
+                if v == "@id" and f"{table}/{header[c]}" in HASHED_IDS:
+                    used = {int(r[c]) for r in (split_csv(strip(l)) for l in lines[1:])
+                            if len(r) > c and re.fullmatch(r"\s*-?\d+\s*", r[c])}
+                    fields[c] = str(hashed_id(key, used, *HASHED_IDS[f"{table}/{header[c]}"]))
+                    out_lines.append(f"id {table}/{header[c]} = {fields[c]} for {key} ({mod['id']})")
+                elif v == "@id":
                     next_ids.setdefault(c, max_field(c) + 1)
                     fields[c] = str(next_ids[c])
                     next_ids[c] += 1
@@ -363,7 +420,10 @@ def apply_csv(table: str, text: str, mods: list[dict]) -> tuple[str, list[str]]:
                     g = column.get(v[4:])
                     gv = "" if g is None else (fields[g] or cell(base, g))
                     k = (c, gv)
-                    next_ids.setdefault(k, max_field(c, g, gv) + 1)
+                    if header[c] in GROUP_INDEX and g is not None:
+                        next_ids[k] = lowest_free(c, g, gv)
+                    else:
+                        next_ids.setdefault(k, max_field(c, g, gv) + 1)
                     fields[c] = str(next_ids[k])
                     next_ids[k] += 1
                     what = "the whole table" if g is None else f"{header[g]} {gv}"

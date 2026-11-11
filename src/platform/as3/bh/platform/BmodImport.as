@@ -12,7 +12,7 @@ package bh.platform
 
    public final class BmodImport
    {
-      public static const CONVERTER:int = 1;
+      public static const CONVERTER:int = 2;
 
       public static const MEMORY:String = "bh-bmod-imports.json";
 
@@ -49,6 +49,8 @@ package bh.platform
       private static var boneNames:Array = null;
 
       private static var powerSwapRows:Array = [];
+
+      private static var heroSwapRows:Array = [];
 
       private static var levelDescs:Array = [];
 
@@ -120,6 +122,10 @@ package bh.platform
                if(row.exists("OwnerCostume"))
                {
                   powerSwapRows.push(row);
+               }
+               else if(row.exists("OwnerHero") && !row.exists("OwnerSpawnBot"))
+               {
+                  heroSwapRows.push(row);
                }
             }
          }
@@ -886,6 +892,16 @@ package bh.platform
          return v == null ? "" : String(v);
       }
 
+      private static function clearCell(sets:BmodMap, header:Array, row:Object, column:String) : Boolean
+      {
+         if(header.indexOf(column) < 0 || trim(cell(row,column)) == "")
+         {
+            return false;
+         }
+         sets.set(column,"@none");
+         return true;
+      }
+
       private static function hasCell(row:Object, column:String) : Boolean
       {
          var k:String = "c" + column;
@@ -1198,7 +1214,7 @@ package bh.platform
 
       private static function skinTones(spriteColours:BmodMap) : Array
       {
-         var use:BmodMap = new BmodMap();
+         var useMap:BmodMap = new BmodMap();
          for each(var bone:String in spriteColours.keys)
          {
             var part:String = partOf(bone);
@@ -1211,20 +1227,20 @@ package bh.platform
             {
                if(isSkin(int(c)))
                {
-                  use.add(c,Number(colours.get(c)));
+                  useMap.add(c,Number(colours.get(c)));
                }
             }
          }
-         if(use.length == 0)
+         if(useMap.length == 0)
          {
             return null;
          }
          var light:int = -1;
          var bestUse:Number = -1;
          var bestTie:Number = 0;
-         for each(c in use.keys)
+         for each(c in useMap.keys)
          {
-            var u:Number = use.get(c);
+            var u:Number = useMap.get(c);
             var tie:Number = -Math.abs(hls(int(c))[1] - 0.75);
             if(light < 0 || u > bestUse || (u == bestUse && tie > bestTie))
             {
@@ -1252,7 +1268,7 @@ package bh.platform
 
       private static function buildPalette(spriteColours:BmodMap) : Object
       {
-         var use:BmodMap = new BmodMap();
+         var useMap:BmodMap = new BmodMap();
          var hair:BmodMap = new BmodMap();
          var parts:Object = {};
          for each(var bone:String in spriteColours.keys)
@@ -1266,7 +1282,7 @@ package bh.platform
             for each(var c:* in colours.keys)
             {
                var n:Number = colours.get(c);
-               use.add(c,n);
+               useMap.add(c,n);
                if(!(("p" + c) in parts))
                {
                   parts["p" + c] = [];
@@ -1283,7 +1299,7 @@ package bh.platform
          }
          var familyOf:BmodMap = new BmodMap();
          var saturated:Array = [];
-         for each(c in use.keys)
+         for each(c in useMap.keys)
          {
             var v:Array = hls(int(c));
             if(v[1] < 0.1 || (v[1] > 0.93 && v[2] < 0.25) || isSkin(int(c)))
@@ -1306,7 +1322,7 @@ package bh.platform
             {
                familyOf.set(c,"Cloth");
             }
-            else if((hair.has(c) ? Number(hair.get(c)) : 0) * 2 > Number(use.get(c)))
+            else if((hair.has(c) ? Number(hair.get(c)) : 0) * 2 > Number(useMap.get(c)))
             {
                familyOf.set(c,"Hair");
             }
@@ -1318,7 +1334,7 @@ package bh.platform
          var keys:Array = [];
          for each(c in saturated)
          {
-            keys.push([-Number(use.get(c))]);
+            keys.push([-Number(useMap.get(c))]);
          }
          saturated = stableSort(saturated,keys,false);
          var groups:Array = [];
@@ -1346,7 +1362,7 @@ package bh.platform
             var sum:Number = 0;
             for each(c in g)
             {
-               sum += Number(use.get(c));
+               sum += Number(useMap.get(c));
             }
             keys.push([-sum]);
          }
@@ -1402,7 +1418,7 @@ package bh.platform
                var anchor:* = null;
                for(var j:int = lo; j < hi; j++)
                {
-                  if(anchor == null || Number(use.get(members[j])) > Number(use.get(anchor)))
+                  if(anchor == null || Number(useMap.get(members[j])) > Number(useMap.get(anchor)))
                   {
                      anchor = members[j];
                   }
@@ -1437,7 +1453,7 @@ package bh.platform
             notes.push(family[0] + ": " + members.length + " shades on " + described.join(", "));
          }
          var left:int = 0;
-         for each(c in use.keys)
+         for each(c in useMap.keys)
          {
             if(!familyOf.has(c))
             {
@@ -1934,6 +1950,10 @@ package bh.platform
          sets.set(keyCol,newKey);
          sets.set("DisplayNameKey",stringKey);
          sets.set(isCostume ? "CostumeID" : "WeaponSkinID","@id");
+         if(clearCell(sets,header,row,"UpgradesTo"))
+         {
+            report.push("not an upgrade of anything (UpgradesTo " + trim(cell(row,"UpgradesTo")) + " cleared: an item can be the upgrade of only one)");
+         }
          var roles:Array = newDefines.keys.concat();
          roles.sort();
          for each(var role:String in roles)
@@ -1975,6 +1995,7 @@ package bh.platform
                wSets.set(weaponKey,baseWeapon + token);
                wSets.set("WeaponSkinID","@id");
                wSets.set("DisplayNameKey",token + "_" + baseWeapon + "_DisplayName");
+               clearCell(wSets,wt.header,w,"UpgradesTo");
                for each(col in WEAPON_ART)
                {
                   var value:String = trim(cell(w,col));
@@ -1992,6 +2013,10 @@ package bh.platform
             if(weaponRows.length > 0)
             {
                sets.set("WeaponSet",token);
+               if(clearCell(sets,header,row,"DoesNotOwnWeaponSet"))
+               {
+                  report.push("owns its new weapon set (DoesNotOwnWeaponSet cleared: " + item.key + " borrows another legend's)");
+               }
                var wDesc:Array = [];
                for each(wRow in weaponRows)
                {
@@ -2225,6 +2250,34 @@ package bh.platform
             "message":display + ": a new " + what + " next to " + (original != null && original != "" ? original : item.key) + "."};
       }
 
+      private static function listHas(list:String, name:String) : Boolean
+      {
+         if(list == null || name == null || name == "")
+         {
+            return false;
+         }
+         for each(var part:String in list.split(","))
+         {
+            if(trim(part) == name)
+            {
+               return true;
+            }
+         }
+         return false;
+      }
+
+      private static function ownedBy(x:Xml, attr:String, key:String) : String
+      {
+         var text:String = x.toString();
+         var from:String = attr + "=\"" + x.method_4935(attr) + "\"";
+         var at:int = text.indexOf(from);
+         if(at < 0)
+         {
+            return null;
+         }
+         return text.substr(0,at) + "OwnerCostume=\"" + key + "\"" + text.substr(at + from.length);
+      }
+
       private static function tagged(text:String, tag:String) : String
       {
          var open:String = "<" + tag + ">";
@@ -2243,17 +2296,60 @@ package bh.platform
          var key:String = item.key;
          var ownByPower:BmodMap = new BmodMap();
          var ownCount:int = 0;
-         for each(var x:Xml in powerSwapRows)
+         var x:Xml;
+         var target:String;
+         var text:String;
+         for each(x in powerSwapRows)
          {
-            if(x.method_4935("OwnerCostume") != key)
+            if(!listHas(x.method_4935("OwnerCostume"),key))
             {
                continue;
             }
-            ownCount++;
-            var target:String = ContentMods.fieldText(x,"TargetPower");
-            if(target != null)
+            target = ContentMods.fieldText(x,"TargetPower");
+            text = ownedBy(x,"OwnerCostume",key);
+            if(target != null && text != null)
             {
-               ownByPower.set(target,x.toString());
+               ownCount++;
+               ownByPower.set(target,text);
+            }
+         }
+         var legend:String = trim(cell(row,"OwnerHero"));
+         var wasCrossover:Boolean = lower(trim(cell(row,"IsCrossover"))) == "true";
+         var isCrossover:Boolean = sets.has("IsCrossover") ? sets.get("IsCrossover") == "TRUE" : wasCrossover;
+         var legendRows:BmodMap = new BmodMap();
+         for each(x in heroSwapRows)
+         {
+            target = ContentMods.fieldText(x,"TargetPower");
+            if(legend != "" && target != null && listHas(x.method_4935("OwnerHero"),legend))
+            {
+               legendRows.set(target,x);
+            }
+         }
+         var legendCopied:Array = [];
+         var legendCovered:Array = [];
+         var legendDropped:Array = [];
+         if(isCrossover && !wasCrossover)
+         {
+            for each(target in legendRows.keys)
+            {
+               text = ownedBy(legendRows.get(target),"OwnerHero",key);
+               if(!ownByPower.has(target) && text != null)
+               {
+                  ownByPower.set(target,text);
+                  legendCopied.push(target);
+               }
+            }
+         }
+         else if(!isCrossover)
+         {
+            for each(target in legendRows.keys)
+            {
+               legendCovered.push(target);
+               if(ownByPower.has(target))
+               {
+                  legendDropped.push(target);
+                  ownByPower.remove(target);
+               }
             }
          }
          var swapSuffixes:Array = [];
@@ -2333,10 +2429,27 @@ package bh.platform
          var powers:Array = ownByPower.keys.concat();
          for each(var bp:String in baseGfx.keys)
          {
-            if(powers.indexOf(bp) < 0)
+            if(legendCovered.indexOf(bp) >= 0)
+            {
+               if(legendDropped.indexOf(bp) < 0)
+               {
+                  legendDropped.push(bp);
+               }
+            }
+            else if(powers.indexOf(bp) < 0)
             {
                powers.push(bp);
             }
+         }
+         if(legendCopied.length > 0)
+         {
+            report.push("powers: " + legendCopied.length + " of " + legend + "'s own swaps copied (a crossover doesn't get them): " +
+               legendCopied.slice(0,8).join(", "));
+         }
+         if(legendDropped.length > 0)
+         {
+            report.push("powers: " + legendDropped.length + " left to " + legend + "'s own swaps (a normal skin gets them): " +
+               legendDropped.slice(0,8).join(", "));
          }
          powers.sort();
          var out:Array = [];

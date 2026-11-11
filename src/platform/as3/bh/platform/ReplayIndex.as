@@ -521,9 +521,15 @@ package bh.platform
 
       public static function refuseReplay(header:Object, read:Boolean) : Boolean
       {
+         var what:String = null;
          try
          {
-            if(!read || header == null || header.var_8999 == null || header.var_8999.var_615 != null)
+            if(!read || header == null || header.var_8999 == null)
+            {
+               return false;
+            }
+            what = missingPart(header);
+            if(what == null)
             {
                return false;
             }
@@ -533,10 +539,35 @@ package bh.platform
             return false;
          }
          ReplayExport.requestStop();
-         PrivateServer.log("replays: refused, its game mode isn't loaded (a mod's mode?)");
-         Modal.show("Replay","This replay was played in a game mode that isn't loaded now (a mod's game mode). Switch " +
-            "that mod on in Mods to watch it.");
+         PrivateServer.log("replays: refused, its " + what + " isn't loaded (a mod's " + what + "?)");
+         Modal.show("Replay",(what == "game mode" ? "This replay was played in a game mode" : (what == "map" ?
+            "This replay was played on a map" : "This replay has a legend")) + " that isn't loaded now (a mod's " + what +
+            "). Switch that mod on in Mods to watch it.");
          return true;
+      }
+
+      private static function missingPart(header:Object) : String
+      {
+         if(header.var_8999.var_615 == null)
+         {
+            return "game mode";
+         }
+         if(header.var_12531 == null)
+         {
+            return "map";
+         }
+         for each(var ent:uint in header.var_4813)
+         {
+            var loadout:Object = header.var_7185 != null ? header.var_7185[ent] : null;
+            for each(var l:Object in (loadout != null ? loadout.var_12798 : null))
+            {
+               if(l != null && uint(l.var_11835) != 0 && HeroType.var_1273[uint(l.var_11835) & 0xFFFF] == null)
+               {
+                  return "legend";
+               }
+            }
+         }
+         return null;
       }
 
       public static function scan(folder:File = null) : Array

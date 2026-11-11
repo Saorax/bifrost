@@ -528,7 +528,7 @@ package bh.platform
             chip.x = x;
             chip.buttonMode = true;
             parent.addChild(chip);
-            var on:Boolean = i == 0 ? !anyPicked() : isPicked(QUICK[i)];
+            var on:Boolean = i == 0 ? !anyPicked() : isPicked(QUICK[i]);
             var label:Object = UiKit.text(chip,QUICK[i],12,3,13,on ? UiKit.NAVY_TEXT : UiKit.LIGHT,UiKit.XBOLD);
             var back:Object = UiKit.rect(chip,0,0,label.width + 24,24,on ? UiKit.TEAL : UiKit.LINE,24);
             chip.setChildIndex(back as Shape,0);

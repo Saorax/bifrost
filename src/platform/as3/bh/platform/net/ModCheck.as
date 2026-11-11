@@ -12,6 +12,8 @@ package bh.platform.net
 
       public static const MODS_LIST:int = 11013;
       public static const START_REFUSED:int = 11014;
+      public static const LOGIN_OK:int = 2431;
+      private static const SENT_WITH:Array = [38,41,83,84,11006];
 
       public function ModCheck()
       {
@@ -21,7 +23,7 @@ package bh.platform.net
       {
          Hooks.packetSending.add(function(connection:Object, packet:Object):Boolean
          {
-            if(packet != null && packet.type == 41)
+            if(packet != null && SENT_WITH.indexOf(int(packet.type)) >= 0)
             {
                sendList();
             }
@@ -29,6 +31,11 @@ package bh.platform.net
          });
          Hooks.packetReceived.add(function(packet:Object):Boolean
          {
+            if(packet != null && packet.type == LOGIN_OK)
+            {
+               sendList();
+               return false;
+            }
             if(packet == null || packet.type != START_REFUSED)
             {
                return false;

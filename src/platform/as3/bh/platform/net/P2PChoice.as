@@ -135,7 +135,7 @@ package bh.platform.net
          }
          var who:Array = names();
          var text:String = who.join(", ") + (who.length == 1 ? " isn't" : " aren't") + " on your friends list.\n" +
-            "Through the server's relay: " + pings.join(", ") + ". It hides your IP address.\n" +
+            "Through a relay: " + pings.join(", ") + ". It hides your IP address.\n" +
             "DIRECT can be faster, but shows each of you the other's IP address. It is used only if both choose it; " +
             "the direct ping is measured then.\n" +
             "The match starts once everyone answers, or after 12 seconds with the relay.";

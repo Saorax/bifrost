@@ -914,6 +914,53 @@ def check_recolouring(swf_path: Path, classes: dict, make_swf, game: Path) -> tu
     return swf, dropped
 
 
+SWAP_ROW = re.compile(r"<PowerSwapType\b[^>]*>.*?</PowerSwapType>", re.S)
+SWAP_OPEN = re.compile(r"<PowerSwapType\b([^>]*)>")
+
+
+def swap_attributes(row: str) -> dict[str, str]:
+    m = SWAP_OPEN.match(row)
+    return dict(re.findall(r'(\w+)="([^"]*)"', m.group(1))) if m else {}
+
+
+def swap_target(row: str) -> str:
+    m = re.search(r"<TargetPower>([^<]*)<", row)
+    return m.group(1).strip() if m else ""
+
+
+def owned_by(row: str, key: str) -> str:
+    attrs = swap_attributes(row)
+    attrs.pop("OwnerHero", None)
+    attrs.pop("OwnerCostume", None)
+    head = " ".join([f'OwnerCostume="{key}"'] + [f'{k}="{v}"' for k, v in attrs.items()])
+    return SWAP_OPEN.sub(lambda m: f"<PowerSwapType {head}>", row, count=1)
+
+
+def listed_names(value: str | None) -> list[str]:
+    return [x.strip() for x in (value or "").split(",") if x.strip()]
+
+
+def swap_sources(ps_text: str, key: str, hero: str, was_crossover: bool,
+                 crossover: bool) -> tuple[list[str], list[str], set[str], int]:
+    own, legend = [], {}
+    for r in SWAP_ROW.findall(ps_text):
+        attrs = swap_attributes(r)
+        if "OwnerCostume" in attrs:
+            if key in listed_names(attrs["OwnerCostume"]):
+                own.append(r)
+        elif hero and "OwnerSpawnBot" not in attrs and hero in listed_names(attrs.get("OwnerHero")) and swap_target(r):
+            legend[swap_target(r)] = r
+    from_hero, covered, dropped = [], set(), 0
+    if crossover and not was_crossover:
+        targets = {swap_target(r) for r in own}
+        from_hero = [r for t, r in legend.items() if t not in targets]
+    elif not crossover:
+        covered = set(legend)
+        kept = [r for r in own if swap_target(r) not in covered]
+        dropped, own = len(own) - len(kept), kept
+    return own, from_hero, covered, dropped
+
+
 def token_for(name: str) -> str:
     words = re.findall(r"[A-Za-z0-9]+", name)
     return "BH" + "".join(w[:1].upper() + w[1:] for w in words)[:40]
@@ -1101,6 +1148,8 @@ def import_bmod(path: Path, out: Path, game: Path, tables: Path, token: str | No
                 continue
             w_sets = {w_header[0]: base + token, "WeaponSkinID": "@id",
                       "DisplayNameKey": f"{token}_{base}_DisplayName"}
+            if (w.get("UpgradesTo") or "").strip():
+                w_sets["UpgradesTo"] = "@none"
             for col in WEAPON_ART:
                 value = (w.get(col) or "").strip()
                 if value.endswith("/" + body_suffix):
@@ -1109,12 +1158,16 @@ def import_bmod(path: Path, out: Path, game: Path, tables: Path, token: str | No
             weapon_strings[f"{token}_{base}_DisplayName"] = f"{display} {base}"
         if weapon_rows:
             sets["WeaponSet"] = token
+            if (row.get("DoesNotOwnWeaponSet") or "").strip():
+                sets["DoesNotOwnWeaponSet"] = "@none"
             report.append("weapons: " + ", ".join(r["set"][w_header[0]] + " (copy of " + r["copy"] + ")" for r in weapon_rows))
     if item["table"] == "costumeTypes" and hands == "bare" and not any("Hand" in n for n in names):
         for col in COSTUME_ART:
             if (row.get(col) or "").startswith("Gfx_Hands.swf/") and row[col] != "Gfx_Hands.swf/Bare":
                 sets[col] = "Gfx_Hands.swf/Bare"
                 report.append(f"bare hands (Gfx_Hands.swf/Bare instead of {row[col]}): the mod draws none")
+    if (row.get("UpgradesTo") or "").strip():
+        sets["UpgradesTo"] = "@none"
     if item["table"] == "costumeTypes":
         sets["CostumeIndex"] = "@id/OwnerHero"
         if icon_name:
@@ -1166,13 +1219,19 @@ def import_bmod(path: Path, out: Path, game: Path, tables: Path, token: str | No
     if item["table"] == "costumeTypes":
         ps_path = tables / "Game" / "PowerSwapTypes.xml"
         ps_text = ps_path.read_text(encoding="utf-8") if ps_path.exists() else ""
-        own_rows = [r for r in re.findall(r"<PowerSwapType [^>]*>.*?</PowerSwapType>", ps_text, re.S)
-                    if f'OwnerCostume="{item["key"]}"' in r.split(">", 1)[0]]
+        was_crossover = (row.get("IsCrossover") or "").strip().lower() == "true"
+        own_rows, hero_rows, covered, dropped = swap_sources(ps_text, item["key"], (row.get("OwnerHero") or "").strip(),
+                                                             was_crossover, bool(roster_pose))
+        if dropped:
+            report.append(f"powers: {dropped} of {item['key']}'s own swaps left out, the legend's OwnerHero swaps "
+                          "cover a skin that isn't a crossover")
+        if hero_rows:
+            report.append(f"powers: {len(hero_rows)} of the legend's OwnerHero swaps copied, they skip crossovers")
         wanted = set()
         for col in ("NameSoundEvent", "OnSelectedSoundEvent"):
             if (row.get(col) or "").strip():
                 wanted.add(row[col].strip().rpartition(":")[2])
-        for r in own_rows:
+        for r in own_rows + hero_rows:
             wanted.update(v.rpartition(":")[2] for v in re.findall(r"<(?:Cast|Hit)SoundEvent>([^<]+)<", r))
         new_events = {old: (old.replace(core, token) if core in old else f"{token}_{old}") for old in wanted}
         event_map: dict[str, str] = {}
@@ -1256,7 +1315,8 @@ def import_bmod(path: Path, out: Path, game: Path, tables: Path, token: str | No
                      for k in ("Cast", "Fire", "Hit")}
             if any(g.get("AnimClass") for g in kinds.values()):
                 base_gfx[name] = kinds
-        own_by_power = {re.search(r"<TargetPower>([^<]*)<", r).group(1): r for r in own_rows if "<TargetPower>" in r}
+        own_by_power = {re.search(r"<TargetPower>([^<]*)<", r).group(1): r for r in hero_rows + own_rows
+                        if "<TargetPower>" in r}
 
         def gfx_xml(kind: str, inner: str | None, base: dict[str, str]) -> str:
             if inner is None or not inner.strip():
@@ -1268,10 +1328,10 @@ def import_bmod(path: Path, out: Path, game: Path, tables: Path, token: str | No
                 taken = len(re.findall(r"<CustomArt\d*>", inner))
                 inner += "".join(f"<CustomArt{taken + i + 1}>{v}</CustomArt{taken + i + 1}>" for i, v in enumerate(art_entries))
             return f"<{kind}Gfx>{inner}</{kind}Gfx>"
-        for power in sorted(set(own_by_power) | set(base_gfx)):
+        for power in sorted(set(own_by_power) | (set(base_gfx) - covered)):
             own = own_by_power.get(power, f'<PowerSwapType OwnerCostume="{item["key"]}"><TargetPower>{power}</TargetPower>'
                                           f'<CastGfx/><FireGfx/><HitGfx/></PowerSwapType>')
-            r2 = own.replace(f'OwnerCostume="{item["key"]}"', f'OwnerCostume="{new_key}"', 1)
+            r2 = owned_by(own, new_key)
             r2 = re.sub(r"<(CastSoundEvent|HitSoundEvent)>([^<]*)</(?:CastSoundEvent|HitSoundEvent)>",
                         lambda m: f"<{m.group(1)}>{swap_event(m.group(2))}</{m.group(1)}>", r2)
             for kind in ("Cast", "Fire", "Hit"):
@@ -1280,7 +1340,8 @@ def import_bmod(path: Path, out: Path, game: Path, tables: Path, token: str | No
                 r2 = r2[:m.start()] + new_gfx + r2[m.end():] if m else r2.replace("</PowerSwapType>", new_gfx + "</PowerSwapType>")
             power_rows.append({"add": r2})
         if power_rows:
-            report.append(f"powers: {len(power_rows)} PowerSwapTypes rows ({len(own_rows)} copied from {item['key']}'s), "
+            report.append(f"powers: {len(power_rows)} PowerSwapTypes rows ({len(own_rows)} copied from {item['key']}'s, "
+                          f"{len(hero_rows)} from the legend's), "
                           "their effects drawn with the new skin's art")
     bones = "".join(f"<Bone>{n}</Bone>" for n in sorted(rename.values()))
     manifest = {
