@@ -200,9 +200,13 @@ def apply_layer_sites(out: Path, sites: list[dict]) -> int:
     by_file: dict[str, list[dict]] = {}
     for s in sites:
         by_file.setdefault(s["file"], []).append(s)
+    applied = len(sites)
     for rel, mine in by_file.items():
         path = out / rel
         if not path.exists() and rel.startswith("bh/mods/"):
+            continue
+        if not path.exists() and all(s.get("optional") for s in mine):
+            applied -= len(mine)
             continue
         if not path.exists():
             raise TreeError(f"layer site file missing: {rel}")
@@ -219,7 +223,7 @@ def apply_layer_sites(out: Path, sites: list[dict]) -> int:
             lines[at:at] = new
         lines = add_imports(lines, [i for s in mine for i in s.get("imports", [])])
         path.write_text("\n".join(lines), encoding="utf-8", newline="\n")
-    return len(sites)
+    return applied
 
 
 def command_tree(args: argparse.Namespace) -> int:

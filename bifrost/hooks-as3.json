@@ -38,6 +38,10 @@
   {"id": "port-p2p-reply-guard", "file": "bh/platform/net/P2PSession.as", "where": "after",
    "anchor": "^receivedCount\\+\\+;$",
    "insert": ["if(srcAddress != null) NetGuard.allowPeer(srcAddress,srcPort);"],
+   "imports": ["port.runtime.net.NetGuard"]},
+  {"id": "port-turn-server-guard", "file": "bh/platform/net/TurnClient.as", "where": "before", "optional": true,
+   "anchor": "^sendBytes\\(bytes,to,serverPort\\);$",
+   "insert": ["NetGuard.allowPeer(to,serverPort);"],
    "imports": ["port.runtime.net.NetGuard"]}
  ]
 }

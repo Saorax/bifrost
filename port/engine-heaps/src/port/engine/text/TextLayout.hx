@@ -316,6 +316,7 @@ class TextLayout {
 	static function fontFor(format:openfl.text.TextFormat):FontData {
 		var name = format.font;
 		if (name == null) return null;
+		var full = name;
 		for (suffix in [" Regular", " Normal"]) if (StringTools.endsWith(name, suffix)) name = name.substr(0, name.length - suffix.length);
 		var font:FontData = null;
 		if (StringTools.startsWith(name, "_")) {
@@ -328,6 +329,7 @@ class TextLayout {
 		if (font == null && format.bold == true) font = SwfFonts.layout.get(name + " Bold");
 		if (font == null && format.italic == true) font = SwfFonts.layout.get(name + " Italic");
 		if (font == null) font = SwfFonts.layout.get(name);
+		if (font == null && full != name) font = SwfFonts.layout.get(full);
 		if (font == null && name != null) missing.set(name, (missing.exists(name) ? missing.get(name) : 0) + 1);
 		return font;
 	}

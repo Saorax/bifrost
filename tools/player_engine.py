@@ -290,12 +290,13 @@ def build_renderers(work: Path, out: Path, hxml: str, log_name: str, label: str)
     haxe = out / "tools" / "haxe" / "haxe.exe"
     at_once = max(1, min(len(RENDERERS), (os.cpu_count() or 2) // 2))
     pending, running, failed = list(RENDERERS), [], []
+    haxe_env = dict(env(), HAXE_STD_PATH="tools/haxe/std")
     while pending or running:
         while pending and len(running) < at_once:
             r = pending.pop(0)
             log = open(work / log_name.format(r), "w", encoding="utf-8", errors="replace")
             print(f"  | building {RENDERER_NAMES[r]}", flush=True)
-            running.append((r, log, subprocess.Popen([str(haxe), hxml.format(r)], cwd=out, env=env(), stdout=log,
+            running.append((r, log, subprocess.Popen([str(haxe), hxml.format(r)], cwd=out, env=haxe_env, stdout=log,
                                                      stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL), time.monotonic()))
         time.sleep(0.5)
         for item in [i for i in running if i[2].poll() is not None]:
