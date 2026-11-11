@@ -344,7 +344,7 @@ package bh.platform.net
             {
                return false;
             }
-            var at:uint = uint(bits.var_11198) / 8;
+            var at:uint = uint(uint(bits.var_11198) / 8);
             var host:uint = copyStart(new NetPacket(START,bits.var_15327,at),new NetPacket(START),0);
             var me:uint = uint(Object(GameApp.mainInstance).var_13259.var_14656);
             if(host == 0 || host == me || !ModItems.knows(host))
