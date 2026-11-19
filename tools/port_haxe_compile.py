@@ -3767,8 +3767,11 @@ VECTOR_ELEMENT_ARG_RE = r"(\.\w+\()(port\.runtime\.As3\.index\((?:this\.)?(?:{fi
 
 def apply_vector_element_downcasts(target: Path, generated: Path | None = None) -> int:
     generated = generated or NATIVE_GENERATED
+    aliased = as3_to_haxe.aliased_classes(VERSION)
     fields = sorted({name for name, rows in as3_field_declarations(scripts_path()).items()
-                     if rows and all(re.fullmatch(r"Vector\.<class_\d+>", kind) for _cls, kind in rows)})
+                     if rows and all((m := re.fullmatch(r"Vector\.<(\w+)>", kind))
+                                     and (re.fullmatch(r"class_\d+", m.group(1)) or m.group(1) in aliased)
+                                     for _cls, kind in rows)})
     if not fields:
         return 0
     pattern = re.compile(VECTOR_ELEMENT_ARG_RE.format(fields="|".join(map(re.escape, fields))))
@@ -3879,7 +3882,15 @@ NATIVE_FIXES_ADDED = (Path("GameType.hx"),) + tuple(Path(*GAME_DS_PACKAGE.split(
                                                      for name in GAME_DS_CLASSES)
 
 
-IMAP_FIELD_RE = re.compile(r"\bvar (var_\d+):([\w.<>, ]+?)\s*[;=]")
+IMAP_FIELD_RE = re.compile(r"\bvar ([A-Za-z_]\w*):([\w.<>, ]+?)\s*[;=]")
+
+
+def obfuscated_fields(text: str) -> list[re.Match]:
+    renamed = as3_to_haxe.version_aliases(VERSION) if VERSION != "10.11" else {}
+    known = as3_to_haxe.version_aliases("10.11")
+    return [m for m in IMAP_FIELD_RE.finditer(text)
+            if re.fullmatch(r"var_\d+", m.group(1))
+            or (m.group(1) not in known and re.fullmatch(r"var_\d+", renamed.get(m.group(1), "")))]
 IMAP_HAS_NEXT_RE = re.compile(r"(?<![\w.])((?:this|[A-Za-z_]\w*)(?:\.[A-Za-z_]\w*)*)\.iterator\(\)\.hasNext\(\)")
 
 
@@ -3894,7 +3905,7 @@ def apply_hl_imap_calls(target: Path, generated: Path | None = None) -> int:
     types: dict[str, set[str]] = {}
     texts = {path: path.read_text(encoding="utf-8") for path in files}
     for text in texts.values():
-        for m in IMAP_FIELD_RE.finditer(text):
+        for m in obfuscated_fields(text):
             types.setdefault(m.group(1), set()).add(m.group(2).strip())
     count = 0
     for path, text in list(texts.items()):
@@ -3930,7 +3941,7 @@ def apply_hl_vector_pushes(target: Path, generated: Path | None = None) -> int:
         texts[path] = path.read_text(encoding="utf-8")
     types: dict[str, set[str]] = {}
     for text in texts.values():
-        for m in IMAP_FIELD_RE.finditer(text):
+        for m in obfuscated_fields(text):
             types.setdefault(m.group(1), set()).add(m.group(2).replace(" ", ""))
     fields = sorted(name for name, kinds in types.items() if len(kinds) == 1 and kinds <= NUMBER_VECTOR_TYPES)
     if not fields:

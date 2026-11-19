@@ -12,10 +12,54 @@ from tools import port_platform, version_match
 
 NAME = re.compile(r"\b(?:[Cc]lass|method|var|const|package|namespace)_\d+\b")
 OUT = ROOT / "build" / "version-names"
+VERSION_FILE = re.compile(r"\d+(?:\.\d+)+\.json")
+
+
+def version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
+def via_version(src: str, dst: str) -> str | None:
+    found = [p.name[:-5] for p in (ROOT / "client" / "symbols").glob("*.json") if VERSION_FILE.fullmatch(p.name)]
+    between = [v for v in found if version_key(src) < version_key(v) < version_key(dst)
+               and (ROOT / "versions" / v / "BrawlhallaAir.swf").is_file()]
+    return max(between, key=version_key) if between else None
+
+
+def table_names(src: str, dst: str, names: dict[str, str]) -> dict[str, str]:
+    path = OUT / f"{src}_to_{dst}.json"
+    if not path.exists():
+        return {}
+    carried = json.loads(path.read_text(encoding="utf-8"))["carried"]
+    a, b = port_platform.SymbolMap(src), port_platform.SymbolMap(dst)
+    taken = set(names.values())
+    out: dict[str, str] = {}
+    for old, new in carried.items():
+        orig, end = a.to_original.get(old), b.to_original.get(new)
+        if orig and end and version_match.OBF.fullmatch(orig) and orig not in names and end not in taken:
+            out[orig] = end
+            taken.add(end)
+    return out
+
+
+def matched_names(src: str, dst: str) -> dict[str, str]:
+    names = dict(version_match.match_versions(src, dst, root=ROOT)[0])
+    via = via_version(src, dst)
+    if via is None:
+        return names | table_names(src, dst, names)
+    first = version_match.match_versions(src, via, root=ROOT)[0]
+    second = version_match.match_versions(via, dst, root=ROOT)[0]
+    taken = set(names.values())
+    for name, middle in first.items():
+        end = second.get(middle)
+        if name not in names and end is not None and end not in taken:
+            names[name] = end
+            taken.add(end)
+    return names
 
 
 def build_map(src: str, dst: str) -> tuple[dict[str, str], dict[str, str]]:
-    names, _pairs = version_match.match_versions(src, dst, root=ROOT)
+    names = matched_names(src, dst)
     porter = port_platform.Porter(port_platform.SymbolMap(src), port_platform.SymbolMap(dst), names)
     carried: dict[str, str] = {}
     for name in sorted(porter.src.to_original):
@@ -24,7 +68,14 @@ def build_map(src: str, dst: str) -> tuple[dict[str, str], dict[str, str]]:
         new = porter.ffdec(name)
         if name not in porter.missing:
             carried[name] = new
-    return carried, dict(porter.missing)
+    missing = dict(porter.missing)
+    extra = ROOT / "client" / "symbols" / f"{dst}.carry.json"
+    if src == "10.11" and extra.exists():
+        for name, new in json.loads(extra.read_text(encoding="utf-8"))["names"].items():
+            if name not in carried:
+                carried[name] = new
+                missing.pop(name, None)
+    return carried, missing
 
 
 def load_map(src: str, dst: str) -> dict[str, str]:
@@ -42,10 +93,17 @@ def save_map(path: Path, src: str, dst: str, carried: dict[str, str], missing: d
                                sort_keys=True) + "\n", encoding="utf-8")
 
 
+def aliased_map(carried: dict[str, str], version: str) -> dict[str, str]:
+    aliases = port_platform.target_aliases(version)
+    return {name: port_platform.aliased(new, aliases) for name, new in carried.items()}
+
+
 def carry(name: str, carried: dict[str, str]) -> str | None:
     if name.startswith("Class_"):
         new = carried.get("c" + name[1:])
-        return None if new is None else "C" + new[1:]
+        if new is None:
+            return None
+        return "C" + new[1:] if NAME.fullmatch(new) else new
     return carried.get(name)
 
 

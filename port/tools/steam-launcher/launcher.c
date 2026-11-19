@@ -1,6 +1,7 @@
 #define COBJMACROS
 #include <windows.h>
 #include <shellapi.h>
+#include <shlobj.h>
 #include <d3d11.h>
 #include <stdlib.h>
 #include <string.h>
@@ -532,6 +533,76 @@ static DWORD original_game(const wchar_t *why)
     return code;
 }
 
+static int documents_folder(wchar_t *out)
+{
+    wchar_t profile[MAX_PATH];
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PERSONAL | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, out))) return 1;
+    if (!GetEnvironmentVariableW(L"USERPROFILE", profile, MAX_PATH)) return 0;
+    wsprintfW(out, L"%s\\Documents", profile);
+    CreateDirectoryW(out, NULL);
+    return 1;
+}
+
+static int profile_folder(wchar_t *out)
+{
+    if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PROFILE, NULL, SHGFP_TYPE_CURRENT, out))) return 1;
+    return GetEnvironmentVariableW(L"USERPROFILE", out, MAX_PATH) > 0;
+}
+
+static int saves_folder(wchar_t *storage, int official)
+{
+    wchar_t saves[MAX_PATH], cache[MAX_PATH], real[MAX_PATH];
+    if (!read_json_path(marker, "\"saves_dir\"", saves, MAX_PATH)) return 0;
+    CreateDirectoryW(saves, NULL);
+    wsprintfW(storage, L"%s\\%s", saves, official ? L"Official" : L"Bifrost");
+    CreateDirectoryW(storage, NULL);
+    SetEnvironmentVariableW(L"BH_PORT_FLAT_STORAGE", L"1");
+    if (read_json_path(marker, "\"cache_dir\"", cache, MAX_PATH)) {
+        CreateDirectoryW(cache, NULL);
+        SetEnvironmentVariableW(L"BH_PORT_CACHE_DIR", cache);
+    }
+    if (profile_folder(real)) SetEnvironmentVariableW(L"BH_PORT_USER_DIR", real);
+    if (!official && documents_folder(real)) {
+        wchar_t mods[MAX_PATH + 32];
+        SetEnvironmentVariableW(L"BH_PORT_DOCUMENTS_DIR", real);
+        wsprintfW(mods, L"%s\\Bifrost\\Mods", real);
+        SetEnvironmentVariableW(L"BH_PORT_MODS_DIR", mods);
+    }
+    return 1;
+}
+
+static void hand_over(int argc, wchar_t **argv)
+{
+    static char text[65536];
+    wchar_t folder[MAX_PATH], file[MAX_PATH + 64], temp[MAX_PATH + 64];
+    int i, at = 0, wanted = 0;
+    HANDLE f;
+    DWORD wrote;
+    for (i = 1; argv && i < argc; i++)
+        if (lstrcmpiW(argv[i], L"-replay") == 0 && i + 1 < argc) wanted = 1;
+    if (!wanted || !documents_folder(folder)) return;
+    wsprintfW(file, L"%s\\Bifrost", folder);
+    CreateDirectoryW(file, NULL);
+    wsprintfW(temp, L"%s\\Settings", file);
+    if (GetFileAttributesW(temp) != INVALID_FILE_ATTRIBUTES) lstrcpyW(file, temp);
+    wsprintfW(temp, L"%s\\bh-launch-request.tmp", file);
+    lstrcatW(file, L"\\bh-launch-request.txt");
+    for (i = 1; i < argc; i++) {
+        int n = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, NULL, 0, NULL, NULL);
+        if (n <= 1 || at + n + 2 >= (int)sizeof text) continue;
+        WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, text + at, n, NULL, NULL);
+        at += n - 1;
+        text[at++] = '\r';
+        text[at++] = '\n';
+    }
+    f = CreateFileW(temp, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (f == INVALID_HANDLE_VALUE) return;
+    WriteFile(f, text, (DWORD)at, &wrote, NULL);
+    CloseHandle(f);
+    if (wrote == (DWORD)at) MoveFileExW(temp, file, MOVEFILE_REPLACE_EXISTING);
+    else DeleteFileW(temp);
+}
+
 int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
 {
     static wchar_t cmd[32768];
@@ -559,7 +630,10 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
         wsprintfW(name, L"Local\\BifrostGame-%s", dir);
         for (c = name + 6; *c; c++) if (*c == L'\\') *c = L'/';
         CreateMutexW(NULL, FALSE, name);
-        if (GetLastError() == ERROR_ALREADY_EXISTS) return 0;
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            hand_over(argc, argv);
+            return 0;
+        }
     }
     forced = filter_args(argc, argv);
     wsprintfW(path, L"%s\\libhl.dll", bin);
@@ -585,7 +659,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
             SetEnvironmentVariableW(L"SteamAppId", L"291550");
             SetEnvironmentVariableW(L"SteamGameId", L"291550");
         }
-        wsprintfW(storage, L"%s\\storage-official", engine);
+        if (!saves_folder(storage, 1)) wsprintfW(storage, L"%s\\storage-official", engine);
         wsprintfW(other, L"%s\\logs\\boot-official.txt", engine);
     } else {
         lstrcpyW(games, bin);
@@ -596,7 +670,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR line, int show)
                 return (int)original_game(L"bifrost: Steam changed the game files since the install");
             return 0;
         }
-        wsprintfW(storage, L"%s\\storage", engine);
+        if (!saves_folder(storage, 0)) wsprintfW(storage, L"%s\\storage", engine);
         wsprintfW(other, L"%s\\logs\\boot.txt", engine);
     }
     SetEnvironmentVariableW(L"BH_PORT_APP_DIR", dir);

@@ -414,6 +414,8 @@ class As3 {
         return flash.Lib.getTimer();
         #elseif port_smoke
         return SmokeClock.now();
+        #elseif (heaps && replay_sim)
+        return fixedTimer;
         #elseif heaps
         return Std.int((haxe.Timer.stamp() - timerBase) * 1000);
         #else
@@ -423,6 +425,9 @@ class As3 {
 
     #if (heaps && !flash && !port_smoke)
     static var timerBase:Float = haxe.Timer.stamp();
+    #end
+    #if (heaps && !flash && !port_smoke && replay_sim)
+    public static var fixedTimer:Int = 0;
     #end
 
     public static function parseInt(value:Dynamic, radix:Dynamic = null):Float {

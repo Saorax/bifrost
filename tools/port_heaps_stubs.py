@@ -923,6 +923,14 @@ _DS4_LAYOUT = ("a:b1,b:b2,back:b13,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.
                "start:b9,x:b0,y:b3,")
 LIBRARY_PATCHES: dict[str, dict[str, list[tuple[str, str]]]] = {
     "hldx": {
+        "dx/Window.hx": [
+            ("\tpublic static inline var RESIZABLE = 0x000002;\n",
+             "\tpublic static inline var RESIZABLE = 0x000002;\n\tpublic static var startHidden = false;\n"),
+            ("\t\twin = winCreateEx(x, y, width, height, windowFlags);\n",
+             "\t\tif (startHidden) {\n\t\t\tx = -32000;\n\t\t\ty = -32000;\n\t\t}\n"
+             "\t\twin = winCreateEx(x, y, width, height, startHidden ? windowFlags | HIDDEN : windowFlags);\n"
+             "\t\tif (startHidden) @:bypassAccessor visible = false;\n"),
+        ],
         "dx/GameController.hx": [
             ('\t\t"03000000790000001100000000000000,Retrolink SNES Controller,',
              f'\t\t"030000004c050000e60c000000000000,PS5 Controller,{_DS4_LAYOUT}", // DualSense (port)\n'

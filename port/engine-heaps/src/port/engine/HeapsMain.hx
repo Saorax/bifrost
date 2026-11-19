@@ -408,9 +408,17 @@ class HeapsMain extends hxd.App {
 	}
 
 	static function focusedScreen():String {
-		var base = Type.resolveClass("ScreenBase");
-		var screen:Dynamic = base != null ? Reflect.field(base, "focusedScreen") : null;
+		var screen:Dynamic = gameFocusedScreen();
 		return screen != null ? Type.getClassName(Type.getClass(screen)) : "none";
+	}
+
+	public static function gameFocusedScreen():Dynamic {
+		var base = Type.resolveClass("ScreenBase");
+		if (base == null) return null;
+		var screen:Dynamic = Reflect.field(base, "focusedScreen");
+		if (screen != null) return screen;
+		var get:Dynamic = Reflect.field(base, "getFocusedScreen");
+		return get != null ? Reflect.callMethod(base, get, []) : null;
 	}
 
 	static function bootSetState():String {

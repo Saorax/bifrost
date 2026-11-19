@@ -81,9 +81,9 @@ _PORTERS: dict[str, object] = {}
 
 def porter(version: str):
     if version not in _PORTERS:
-        from tools import port_platform, version_match
+        from tools import port_platform, port_version_names
         _PORTERS[version] = port_platform.Porter(port_platform.SymbolMap("10.11"), port_platform.SymbolMap(version),
-                                                 version_match.match_versions("10.11", version)[0])
+                                                 port_version_names.matched_names("10.11", version))
     return _PORTERS[version]
 
 
@@ -91,7 +91,9 @@ def ported_source(air: Path, commit: str, version: str, out: Path | None = None)
     from tools import port_platform, version_match
     out = out or AIR_PORT
     tool = hashlib.sha1(Path(port_platform.__file__).read_bytes()).hexdigest()
-    want = {"commit": commit, "version": version, "port_platform": tool}
+    aliases = port_platform.target_aliases(version)
+    want = {"commit": commit, "version": version, "port_platform": tool,
+            "aliases": hashlib.sha1(json.dumps(aliases, sort_keys=True).encode()).hexdigest()}
     stamp = out / "STAMP.json"
     if stamp.exists() and json.loads(stamp.read_text(encoding="utf-8")) == want:
         return out
@@ -107,8 +109,8 @@ def ported_source(air: Path, commit: str, version: str, out: Path | None = None)
                 target.write_bytes(tar.extractfile(member).read())
     carry = porter(version)
     carry.missing.clear()
-    port_platform.port_tree(pinned / "src" / "platform", out / "src" / "platform",
-                            lambda t: port_platform.FFDEC.sub(lambda m: carry.ffdec(m.group(0)), t))
+    port_platform.port_tree(pinned / "src" / "platform", out / "src" / "platform", lambda t: port_platform.FFDEC.sub(
+        lambda m: port_platform.aliased(carry.ffdec(m.group(0)), aliases), t))
     patches = out / "src" / "platform" / "patches.json"
     text = patches.read_text(encoding="utf-8")
     patches.write_text(version_match.OBF.sub(lambda m: carry.obfuscated(m.group(0)), text), encoding="utf-8")
@@ -222,7 +224,9 @@ def ffdec_name(name: str, version: str | None = None) -> str:
         for block in data["blocks"]:
             for member in block["members"]:
                 seen.setdefault(member[3], set()).add(member[4])
-        _FFDEC[version] = {k: next(iter(v)) for k, v in seen.items() if len(v) == 1}
+        from tools import port_platform
+        aliases = port_platform.target_aliases(version)
+        _FFDEC[version] = {k: port_platform.aliased(next(iter(v)), aliases) for k, v in seen.items() if len(v) == 1}
     return _FFDEC[version].get(name, name)
 
 
@@ -424,9 +428,10 @@ def translate_override(over: dict, version: str) -> dict:
     from tools import port_platform, version_match
     carry = porter(version)
     carry.missing.clear()
+    aliases = port_platform.target_aliases(version)
 
     def text(s: str) -> str:
-        s = port_platform.FFDEC.sub(lambda m: carry.ffdec(m.group(0)), s)
+        s = port_platform.FFDEC.sub(lambda m: port_platform.aliased(carry.ffdec(m.group(0)), aliases), s)
         return re.sub(r"\{\{([^}]+)\}\}", lambda m: "{{" + version_match.OBF.sub(
             lambda n: carry.obfuscated(n.group(0)), m.group(1)) + "}}", s)
 
@@ -500,17 +505,16 @@ class AS3Names:
         sym = ROOT / "client" / "symbols"
         data = json.loads((sym / f"{version}.json").read_text(encoding="utf-8"))
         aliases = json.loads((sym / f"{version}.aliases.json").read_text(encoding="utf-8"))["aliases"]
-        self.alias = {a["original"]: a["alias"] for a in aliases}
+        self.alias = {a["renamed"].split(".")[-1]: a["alias"] for a in aliases}
         self.classes: dict[str, str] = {}
         self.members: dict[tuple[str, str], tuple[str, bool]] = {}
         for block in data["blocks"]:
             owners = {c[0]: c[1] for c in block["classes"]}
             for c in block["classes"]:
-                self.classes[c[1]] = self.alias.get(c[1], c[2])
+                self.classes[c[1]] = self.alias.get(c[2], c[2])
             for scope, owner, _kind, original, renamed, *_ in block["members"]:
                 if scope in ("static", "instance") and owner in owners:
-                    name = self.alias.get(f"{owners[owner]}.{original}", renamed)
-                    self.members[(owners[owner], original)] = (name, scope == "static")
+                    self.members[(owners[owner], original)] = (self.alias.get(renamed, renamed), scope == "static")
 
     def cls(self, original: str) -> str:
         if original not in self.classes:

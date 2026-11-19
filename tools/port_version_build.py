@@ -16,6 +16,7 @@ from tools import port_version_names
 
 OUT = ROOT / "build" / "version-tools"
 STAMP = "STAGE.json"
+SAVES_VERSION = "11.00"
 KEEP_STAGES = 3
 TEXT = {".py", ".hx", ".hxml", ".json", ".txt", ".md", ".xml"}
 VERSIONED = {"port_haxe_compile.py", "as3_to_haxe.py", "compare_methods.py", "bifrost_build.py", "bifrost_hookmap.py",
@@ -41,6 +42,8 @@ def stage_key(version: str, files: list[Path]) -> str:
     digest.update(Path(port_version_names.__file__).read_bytes())
     table = port_version_names.OUT / f"10.11_to_{version}.json"
     digest.update(table.read_bytes() if table.exists() else b"<none>")
+    aliases = ROOT / "client" / "symbols" / f"{version}.aliases.json"
+    digest.update(aliases.read_bytes() if aliases.exists() else b"<none>")
     for path in files:
         info = path.stat()
         digest.update(f"{path.relative_to(ROOT).as_posix()}|{info.st_size}|{info.st_mtime_ns}\n".encode())
@@ -70,7 +73,7 @@ def rewrite_tool(text: str, target: Path, version: str) -> str:
     text = text.replace('"build" / "game-test" / "port"', f'"build" / "game-test" / "port-{version}"')
     text = text.replace('"build" / "bifrost"', f'"build" / "bifrost-{version}"')
     text = text.replace('"C:/Coding/bh-bifrost-engine"', '"C:/Coding/BRAWLHALLA PROJECTS/bifrost/bifrost-main"'
-                        if version.startswith("11.00") else f'"C:/Coding/bh-bifrost-engine-{version}"')
+                        if version.startswith("11.") else f'"C:/Coding/bh-bifrost-engine-{version}"')
     for parser in ("parser", "p"):
         text = text.replace(f'{parser}.add_argument("--version", default="10.11"',
                             f'{parser}.add_argument("--version", default="{version}"')
@@ -78,7 +81,7 @@ def rewrite_tool(text: str, target: Path, version: str) -> str:
 
 
 def own_storage(text: str, version: str) -> str:
-    version = ".".join(version.split(".")[:2])
+    version = SAVES_VERSION if version.startswith("11.") else ".".join(version.split(".")[:2])
     tag = version.replace(".", "")
     text = text.replace('"BhPort"', f'"BhPort-{version}"').replace('"bhport_"', f'"bhport{tag}_"')
     text = text.replace('"bh-port-smoke"', f'"bh-port-smoke-{version}"')
@@ -91,7 +94,7 @@ def stage(version: str, *, force: bool = False) -> Path:
     final = stage_dir(version) / key[:16]
     if not force and (final / STAMP).exists():
         return final
-    carried = port_version_names.load_map("10.11", version)
+    carried = port_version_names.aliased_map(port_version_names.load_map("10.11", version), version)
     target = final.with_name(final.name + f".tmp{os.getpid()}")
     shutil.rmtree(target, ignore_errors=True)
     missing: dict[str, int] = {}

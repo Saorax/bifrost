@@ -257,21 +257,21 @@ def command_tree(args: argparse.Namespace) -> int:
     return 0
 
 
-FFDEC_MEMBER_RE = re.compile(r"\b(?:var|method)_\d+\b")
+FFDEC_NAME_RE = re.compile(r"\b(?:class|var|method|const)_\d+\b")
 
 
 def translate_layer_names(layer: Path, raw: Path, version: str) -> list[tuple[str, str, int]]:
     aliases = json.loads((ROOT / "client" / "symbols" / f"{version}.aliases.json").read_text(encoding="utf-8"))
     by_name: dict[str, set[str]] = {}
     for entry in aliases["aliases"]:
-        renamed = entry.get("renamed", "")
-        if "." in renamed and FFDEC_MEMBER_RE.fullmatch(renamed.rsplit(".", 1)[1]):
-            by_name.setdefault(renamed.rsplit(".", 1)[1], set()).add(entry["alias"])
+        name = entry.get("renamed", "").rsplit(".", 1)[-1]
+        if FFDEC_NAME_RE.fullmatch(name):
+            by_name.setdefault(name, set()).add(entry["alias"])
     in_raw: set[str] = set()
     for path in raw.rglob("*.as"):
         if path.relative_to(raw).parts[0] == "bh":
             continue
-        in_raw.update(FFDEC_MEMBER_RE.findall(path.read_text(encoding="utf-8", errors="replace")))
+        in_raw.update(FFDEC_NAME_RE.findall(path.read_text(encoding="utf-8", errors="replace")))
     plan = {name: next(iter(found)) for name, found in by_name.items() if len(found) == 1 and name not in in_raw}
     uses: dict[str, int] = {}
     for path in layer.rglob("*.as"):
@@ -284,7 +284,7 @@ def translate_layer_names(layer: Path, raw: Path, version: str) -> list[tuple[st
             uses[m.group(0)] = uses.get(m.group(0), 0) + 1
             return alias
 
-        new = FFDEC_MEMBER_RE.sub(swap, text)
+        new = FFDEC_NAME_RE.sub(swap, text)
         if new != text:
             path.write_text(new, encoding="utf-8", newline="")
     return [(name, plan[name], count) for name, count in sorted(uses.items())]

@@ -40,10 +40,11 @@ from tools import engine_stamp, game_files
 
 DEFAULT_OUT = ROOT / "build" / "player-kit"
 DEFAULT_ENGINE = Path("C:/Coding/BRAWLHALLA PROJECTS/bifrost/bifrost-main")
-VERSION = "11.00.49"
+VERSION = "11.01"
 
 METADATA = [
     "client/symbols/10.11.json",
+    "client/symbols/10.11.aliases.json",
     f"client/symbols/{VERSION}.json",
     f"client/symbols/{VERSION}.aliases.json",
     f"client/symbols/{VERSION}.packets.json",
@@ -203,13 +204,10 @@ def build(out: Path, engine: Path, server: str | None = None, release: str | Non
                           if not any(h.get("file", "").startswith(f"bh/mods/{m}/") for m in dropped)]
         hooks_path.write_text(json.dumps(hooks, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
         print(f"player kit: test mods left out (not registered, not used by the platform code): {', '.join(dropped)}")
-    from tools import recovered_edits
-    ffdec_text = repo / "build" / "as3" / VERSION / "ffdec" / "export-aliased" / "scripts"
-    if not ffdec_text.is_dir():
-        raise KitError(f"missing {ffdec_text} (the AIR project's tools/export_as3.py --version {VERSION})")
+    from tools import engine_aliases, recovered_edits
     try:
-        edits = recovered_edits.make(ROOT / "src" / "as3-recovered" / VERSION, ffdec_text)
-    except recovered_edits.EditError as e:
+        edits = recovered_edits.make(ROOT / "src" / "as3-recovered" / VERSION, engine_aliases.export_current(VERSION))
+    except (engine_aliases.AliasError, recovered_edits.EditError) as e:
         raise KitError(str(e))
     (out / "recovered").mkdir()
     (out / "recovered" / f"{VERSION}.json").write_text(json.dumps(edits, indent=1) + "\n", encoding="utf-8")

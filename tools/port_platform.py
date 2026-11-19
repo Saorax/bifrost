@@ -123,6 +123,18 @@ class Porter:
         return f"block-{block}/{self.dst.file[cls]}.class.asasm"
 
 
+def target_aliases(version: str) -> dict[str, str]:
+    path = ROOT / "client" / "symbols" / f"{version}.aliases.json"
+    if not path.exists():
+        return {}
+    entries = json.loads(path.read_text(encoding="utf-8"))["aliases"]
+    return {e["renamed"].split(".")[-1]: e["alias"] for e in entries}
+
+
+def aliased(name: str, aliases: dict[str, str]) -> str:
+    return aliases.get(name, name)
+
+
 def port_tree(src: Path, out: Path, rewrite) -> int:
     if out.exists():
         shutil.rmtree(out)
@@ -142,8 +154,9 @@ def port(src_ver: str, dst_ver: str, out: Path | None = None) -> tuple[Path, Por
     porter = Porter(SymbolMap(src_ver), SymbolMap(dst_ver), version_match.match_versions(src_ver, dst_ver)[0])
     out = out or ROOT / "build" / f"port-{dst_ver}"
     out.mkdir(parents=True, exist_ok=True)
+    aliases = target_aliases(dst_ver)
     n_platform = port_tree(ROOT / "src" / "platform", out / "platform",
-                           lambda t: FFDEC.sub(lambda m: porter.ffdec(m.group(0)), t))
+                           lambda t: FFDEC.sub(lambda m: aliased(porter.ffdec(m.group(0)), aliases), t))
     patches = out / "platform" / "patches.json"
     if patches.exists():
         text = patches.read_text(encoding="utf-8")

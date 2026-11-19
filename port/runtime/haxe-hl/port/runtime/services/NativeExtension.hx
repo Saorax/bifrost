@@ -33,6 +33,7 @@ class NativeExtension extends ExtensionImpl {
             return null;
         }
         if (log != null) log("extension " + id + ": loaded, " + Native.function_count() + " functions");
+        logNotes();
         var ext = new NativeExtension();
         ext.loaded = true;
         return ext;
@@ -83,9 +84,17 @@ class NativeExtension extends ExtensionImpl {
         if (log != null && (name == "Init" || name == "LoadBank" || name == "UnloadBank"))
             log("extension call " + name + "(" + args.join(", ") + ") = " + result + " (" + Math.round(took * 10000) / 10
                 + " ms)");
+        if (name == "Init" || name == "LoadBank") logNotes();
         if (Math.isNaN(result)) return null;
         if (result >= 0 && result <= 2147483647 && result == Math.ffloor(result)) return Std.int(result);
         return result;
+    }
+
+    static function logNotes():Void {
+        if (log == null) return;
+        var b = Native.redirect_note();
+        var text = b == null ? "" : @:privateAccess String.fromUTF8(b);
+        if (text != "") for (line in text.split("\n")) log(line);
     }
 
     static function write(out:haxe.io.BytesOutput, value:Dynamic) {
@@ -135,4 +144,5 @@ private extern class Native {
     static function function_count():Int;
     static function call(name:hl.Bytes, args:hl.Bytes, length:Int):Float;
     static function dispose():Void;
+    static function redirect_note():hl.Bytes;
 }

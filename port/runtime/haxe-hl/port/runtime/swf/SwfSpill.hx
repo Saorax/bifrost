@@ -104,7 +104,8 @@ class SwfSpill {
         state = -1;
         if (Sys.getEnv("BH_PORT_SPILL") == "0") return;
         try {
-            var dir = haxe.io.Path.join([port.runtime.services.Launch.storageDirectory(), "BhPort", "Cache"]);
+            var dir = Sys.getEnv("BH_PORT_CACHE_DIR");
+            if (dir == null || dir == "") dir = haxe.io.Path.join([port.runtime.services.Launch.storageDirectory(), "BhPort", "Cache"]);
             sys.FileSystem.createDirectory(dir);
             for (name in sys.FileSystem.readDirectory(dir)) {
                 if (StringTools.startsWith(name, "swf-shapes-")) {

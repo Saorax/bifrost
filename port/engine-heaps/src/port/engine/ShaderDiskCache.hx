@@ -11,7 +11,8 @@ class ShaderDiskCache extends h3d.impl.ShaderCache {
 	public static function install(storageDirectory:String):Void {
 		#if hldx
 		if (Sys.getEnv("BH_PORT_SHADER_CACHE") == "0") return;
-		var dir = haxe.io.Path.join([storageDirectory, "BhPort", "Cache"]);
+		var dir = Sys.getEnv("BH_PORT_CACHE_DIR");
+		if (dir == null || dir == "") dir = haxe.io.Path.join([storageDirectory, "BhPort", "Cache"]);
 		try sys.FileSystem.createDirectory(dir) catch (e:Dynamic) return;
 		instance = new ShaderDiskCache(haxe.io.Path.join([dir, "shaders-" + #if dx12 "dx12" #else "dx11" #end + ".cache"]));
 		h3d.impl.Driver.setShaderCache(instance);

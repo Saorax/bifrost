@@ -33,6 +33,7 @@ class File extends EventDispatcher {
 
     static function get_applicationStorageDirectory():File
         return new File(port.runtime.PortStorage.gameFolder != null ? port.runtime.PortStorage.gameFolder
+            : port.runtime.PortStorage.flat() ? Launch.storageDirectory()
             : Paths.resolve(Launch.storageDirectory(), port.runtime.PortStorage.FOLDER));
 
     static function get_documentsDirectory():File return port.runtime.PortStorage.documentsDirectory();

@@ -4,17 +4,22 @@
     python tools/port_steam_install.py sim --version 11.00       # a test folder: build/game-test/steam-sim-<ver>
     python tools/port_steam_install.py install --game DIR [--from C:/Coding/BRAWLHALLA PROJECTS/bifrost/bifrost-main] [--engine-dir DIR]
     python tools/port_steam_install.py move --game DIR --engine-dir DIR   # move the engine folder (and its saves)
+    python tools/port_steam_install.py adopt-saves --game DIR    # saves to %LOCALAPPDATA%/Bifrost/Saves, real Documents
     python tools/port_steam_install.py check --game DIR [--seconds 90]
     python tools/port_steam_install.py uninstall --game DIR [--purge]
     python tools/port_steam_install.py status --game DIR         # the marker, and the launcher's start record
 
 ``install`` puts the export's engine (``bin``, ``bin-vulkan``; ``tools/bifrost_export.py``) in ``<game>/bifrost-engine``, or in
-``--engine-dir``. with the engine outside the game folder only the launcher stays there: the marker and the original
+``--engine-dir``; the player's kit (``player_engine.py``) always puts it in ``%LOCALAPPDATA%/Bifrost/Engine``
+(``player_engine_dir``). with the engine outside the game folder only the launcher stays there: the marker and the original
 launcher's backup live in the engine folder, the launcher carries the engine folder's path at its end (``set_tail``),
 and ``%LOCALAPPDATA%/Bifrost/engines.txt`` lists engine folders so an install is found after Steam replaces the launcher
 and the launcher (``port/tools/steam-launcher/launcher.c``) in place of ``Brawlhalla.exe``. the game's own launcher is
 kept as ``Brawlhalla.exe.bifrost-original`` and every file added is listed in ``bifrost-engine.json`` (the marker).
-the game reads its files in place (content mods in ``<game>/mods``); saves go to the engine folder's ``storage``.
+the game reads its files in place (content mods in ``<game>/mods``); saves go to the engine folder's ``storage``, or, after
+``adopt-saves`` (the player's kit does it), to ``saves_dir`` in the marker (``%LOCALAPPDATA%/Bifrost/Saves/Bifrost`` and
+``Official``, no ``BhPort`` folder) with Bifrost's documents in the real ``Documents/Bifrost``, Official's replays in the
+real ``BrawlhallaReplays`` and Bifrost's in ``BrawlhallaReplays/Bifrost``; the launcher passes those to the engine.
 ``uninstall`` restores the original launcher (its hash checked) and removes what the marker lists; the saves stay
 unless ``--purge``. a Steam update that puts the original launcher back is noticed by the next ``install``.
 
@@ -24,6 +29,7 @@ build's) are refused unless ``--owner-folder`` is given.
 from __future__ import annotations
 
 import argparse
+import filecmp
 import hashlib
 import json
 import os
@@ -263,11 +269,56 @@ def remember(engine: Path) -> None:
     index = index_file()
     if index is None:
         return
-    known = [line for line in (index.read_text(encoding="utf-8").splitlines() if index.exists() else []) if line.strip()]
+    lines = [line.strip() for line in (index.read_text(encoding="utf-8").splitlines() if index.exists() else []) if line.strip()]
     entry = engine.resolve().as_posix()
+    known = [line for line in dict.fromkeys(lines) if line == entry or (Path(line) / MARKER).exists()]
     if entry not in known:
+        known.append(entry)
+    if known != lines:
         index.parent.mkdir(parents=True, exist_ok=True)
-        index.write_text("\n".join(known + [entry]) + "\n", encoding="utf-8")
+        index.write_text("\n".join(known) + "\n", encoding="utf-8")
+
+
+VULKAN_COPIES = (EXE, VULKAN_EXE)
+
+
+def only_vulkan_copy(folder: Path) -> bool:
+    entries = list(folder.iterdir()) if folder.is_dir() else []
+    return bool(entries) and all(p.is_file() and p.name in VULKAN_COPIES for p in entries)
+
+
+def player_engine_home() -> Path | None:
+    local = os.environ.get("LOCALAPPDATA")
+    return Path(local) / "Bifrost" / "Engine" if local else None
+
+
+def player_engine_dir(game: Path) -> Path | None:
+    if installed(game) and outside(game, engine_dir(game)):
+        return None
+    home = player_engine_home()
+    if home is None:
+        return None
+    for n in range(1, 100):
+        folder = home if n == 1 else home.with_name(f"{home.name}-{n}")
+        marker = folder / MARKER
+        if marker.exists():
+            try:
+                recorded = json.loads(marker.read_text(encoding="utf-8")).get("game")
+            except (OSError, ValueError):
+                recorded = None
+            if recorded and same_folder(Path(recorded), game):
+                return folder
+            if recorded and (Path(recorded) / EXE).exists():
+                continue
+        if only_vulkan_copy(folder):
+            for p in folder.iterdir():
+                p.unlink()
+        if not marker.exists() and (not folder.exists() or all(p.name in CARRIED for p in folder.iterdir())):
+            return folder
+    return None
+
+
+CARRIED = ("storage", "storage-official", LOGS)
 
 
 def same_folder(a: Path, b: Path) -> bool:
@@ -369,6 +420,9 @@ def move(game: Path, target: Path, owner_folder: bool = False) -> str:
     target = target.resolve()
     if same_folder(target, current):
         return f"the engine is already in {target}"
+    if only_vulkan_copy(target):
+        for p in target.iterdir():
+            p.unlink()
     if target.exists() and any(target.iterdir()):
         raise InstallError(f"{target} isn't empty: pick a new or empty folder")
     if current.resolve() in target.parents or target in current.resolve().parents:
@@ -396,6 +450,224 @@ def move(game: Path, target: Path, owner_folder: bool = False) -> str:
 def storage_dir(folder: Path) -> Path | None:
     found = sorted((folder / "storage").glob("BhPort*")) if (folder / "storage").exists() else []
     return found[0] if found else None
+
+
+def shell_folder(env: str, csidl: int, fallback: str) -> Path:
+    given = os.environ.get(env)
+    if given:
+        return Path(given)
+    if os.name == "nt":
+        import ctypes
+        buf = ctypes.create_unicode_buffer(32768)
+        if ctypes.windll.shell32.SHGetFolderPathW(None, csidl, None, 0, buf) == 0 and buf.value:
+            return Path(buf.value)
+    return Path.home() / fallback if fallback else Path.home()
+
+
+def documents_folder() -> Path:
+    return shell_folder("BH_PORT_DOCUMENTS_DIR", 5, "Documents")
+
+
+def profile_folder() -> Path:
+    return shell_folder("BH_PORT_USER_DIR", 40, "")
+
+
+SAVES, CACHE = "Saves", "Cache"
+BIFROST_SAVES, OFFICIAL_SAVES = "Bifrost", "Official"
+DOCUMENTS_KEPT = ("Settings", "Mods", "Screenshots", "Videos", "Workshop", "Logs", "Old")
+
+
+def player_saves_dirs(engine: Path) -> tuple[Path, Path]:
+    home = player_engine_home()
+    if home is not None:
+        if same_folder(engine, home):
+            return home.parent / SAVES, home.parent / CACHE
+        m = re.fullmatch(re.escape(home.name) + r"-(\d+)", engine.name, re.IGNORECASE)
+        if m and same_folder(engine.parent, home.parent):
+            return home.parent / f"{SAVES}-{m.group(1)}", home.parent / f"{CACHE}-{m.group(1)}"
+    return engine / SAVES, engine / CACHE
+
+
+def saves_of(game: Path) -> Path | None:
+    value = read_marker(game).get("saves_dir") if installed(game) else None
+    return Path(value) if value else None
+
+
+def bifrost_documents(game: Path) -> Path | None:
+    return documents_folder() / "Bifrost" if saves_of(game) is not None else None
+
+
+def documents_file(documents: Path, name: str) -> Path:
+    settings = documents / "Settings"
+    return settings / name if settings.is_dir() else documents / name
+
+
+def report_file(documents: Path, name: str) -> Path:
+    logs = documents / "Logs"
+    if not (documents / "Settings").is_dir() or not logs.is_dir():
+        return documents / name
+    try:
+        text = (logs / "bh-session.txt").read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        text = ""
+    if re.match(r"\d{4}-\d\d-\d\d", text) and (logs / text[:10] / name).exists():
+        return logs / text[:10] / name
+    days = sorted(p for p in logs.glob("????-??-??") if p.is_dir() and (p / name).exists())
+    return days[-1] / name if days else documents / name
+
+
+def merge_into(src: Path, dst: Path, old: Path, moved: list[str]) -> None:
+    if not src.exists():
+        return
+    if src.is_dir() and not src.is_symlink():
+        if dst.exists() and not dst.is_dir():
+            merge_into(src, old / src.name, old.parent / (old.name + "-more"), moved)
+            return
+        dst.mkdir(parents=True, exist_ok=True)
+        for child in sorted(src.iterdir()):
+            merge_into(child, dst / child.name, old / child.name, moved)
+        try:
+            src.rmdir()
+        except OSError:
+            pass
+        return
+    if dst.is_file() and filecmp.cmp(src, dst, shallow=False):
+        src.unlink()
+        return
+    target = dst if not dst.exists() else old
+    n = 1
+    while target.exists():
+        n += 1
+        target = old.with_name(f"{old.stem} ({n}){old.suffix}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(src), str(target))
+    moved.append(f"{src} -> {target}")
+
+
+def newest_first(folders: list[Path]) -> list[Path]:
+    return sorted(folders, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def adopt_storage(storage: Path, saves: Path, cache: Path, documents: Path | None, replays: Path | None,
+                  moved: list[str]) -> None:
+    if not storage.is_dir():
+        return
+    old = saves / "Old" / storage.name
+    homes = newest_first([p for p in storage.iterdir() if p.is_dir() and p.name.lower().startswith("bhport")])
+    for home in homes:
+        for child in sorted(home.iterdir()):
+            if child.name == "Cache":
+                merge_into(child, cache, old / home.name / "Cache", moved)
+            elif child.name == "Documents" and documents is not None:
+                for doc in sorted(child.iterdir()):
+                    if doc.name == "Bifrost" and doc.is_dir():
+                        merge_into(doc, documents, saves / "Old" / "Documents-Bifrost" / home.name, moved)
+                    else:
+                        merge_into(doc, saves / "Documents" / doc.name, old / home.name / "Documents" / doc.name, moved)
+                try:
+                    child.rmdir()
+                except OSError:
+                    pass
+            elif child.name == "User" and replays is not None:
+                for item in sorted(child.iterdir()):
+                    if item.name == "BrawlhallaReplays" and item.is_dir():
+                        merge_into(item, replays, saves / "Old" / "BrawlhallaReplays" / home.name, moved)
+                    else:
+                        merge_into(item, saves / "User" / item.name, old / home.name / "User" / item.name, moved)
+                try:
+                    child.rmdir()
+                except OSError:
+                    pass
+            else:
+                merge_into(child, saves / child.name, old / home.name / child.name, moved)
+        try:
+            home.rmdir()
+        except OSError:
+            pass
+    for child in sorted(storage.iterdir()):
+        merge_into(child, saves / child.name, old / child.name, moved)
+    try:
+        storage.rmdir()
+    except OSError:
+        pass
+
+
+def clear_documents(documents: Path, moved: list[str]) -> None:
+    if not documents.is_dir():
+        return
+    old = documents / "Old"
+    for child in sorted(documents.iterdir()):
+        if child.name not in DOCUMENTS_KEPT:
+            merge_into(child, old / child.name, old / "more" / child.name, moved)
+
+
+def adopt_mods(game: Path, documents: Path, moved: list[str]) -> None:
+    mods = documents / "Mods"
+    aside = documents / "Old" / "Mods"
+    stamp = int(time.time() * 1000)
+    src = game / "mods"
+    if src.is_dir() and not src.is_symlink():
+        mods.mkdir(parents=True, exist_ok=True)
+        for child in sorted(src.iterdir()):
+            dst = mods / child.name
+            if child.is_dir() and dst.exists():
+                target = aside / "Replaced" / f"{child.name}-{stamp}"
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(child), str(target))
+                moved.append(f"{child} -> {target}")
+            else:
+                merge_into(child, dst, aside / "Replaced" / f"{child.name}-{stamp}", moved)
+        try:
+            src.rmdir()
+        except OSError:
+            pass
+    for kind in ("removed", "replaced"):
+        merge_into(game / f"mods-{kind}", aside / kind.capitalize(), aside / f"{kind.capitalize()}-{stamp}", moved)
+
+
+def adopt_saves(game: Path, owner_folder: bool = False) -> str:
+    guard(game, owner_folder)
+    if not installed(game):
+        raise InstallError(f"{game}: not installed (no {MARKER})")
+    engine = engine_dir(game)
+    if bifrost_export.running_from(engine) or bifrost_export.running_from(game):
+        raise InstallError("close Brawlhalla first")
+    marker = read_marker(game, engine)
+    first = not marker.get("saves_dir")
+    if first:
+        saves, cache = player_saves_dirs(engine)
+    else:
+        saves = Path(marker["saves_dir"])
+        cache = Path(marker.get("cache_dir") or player_saves_dirs(engine)[1])
+    documents = documents_folder() / "Bifrost"
+    moved: list[str] = []
+    (saves / BIFROST_SAVES).mkdir(parents=True, exist_ok=True)
+    (saves / OFFICIAL_SAVES).mkdir(parents=True, exist_ok=True)
+    if first and (engine / "storage").is_dir() and any(p.is_dir() and p.name.lower().startswith("bhport")
+                                                     for p in (engine / "storage").iterdir()):
+        clear_documents(documents, moved)
+    adopt_storage(engine / "storage", saves / BIFROST_SAVES, cache, documents,
+                  profile_folder() / "BrawlhallaReplays" / "Bifrost", moved)
+    loose = saves / BIFROST_SAVES / "User" / "BrawlhallaReplays"
+    if loose.is_dir():
+        merge_into(loose, profile_folder() / "BrawlhallaReplays" / "Bifrost",
+                   saves / BIFROST_SAVES / "Old" / "BrawlhallaReplays" / "User", moved)
+        try:
+            loose.parent.rmdir()
+        except OSError:
+            pass
+    adopt_storage(engine / "storage-official", saves / OFFICIAL_SAVES, cache, None,
+                  profile_folder() / "BrawlhallaReplays", moved)
+    adopt_mods(game, documents, moved)
+    marker["saves_dir"] = saves.resolve().as_posix()
+    marker["cache_dir"] = cache.resolve().as_posix()
+    marker_path(game, engine).write_text(json.dumps(marker, indent=1) + "\n", encoding="utf-8")
+    if moved:
+        log = saves / "moved.txt"
+        with log.open("a", encoding="utf-8") as f:
+            f.write(time.strftime("%Y-%m-%d %H:%M:%S") + f" {len(moved)} moved\n" + "".join(m + "\n" for m in moved))
+    return (f"saves in {saves} ({BIFROST_SAVES}, {OFFICIAL_SAVES}), cache in {cache}, Bifrost's documents in {documents}"
+            + (f"; {len(moved)} moved, listed in {saves / 'moved.txt'}" if moved else ""))
 
 
 def install(game: Path, source: Path, owner_folder: bool = False, engine_at: Path | None = None) -> str:
@@ -438,7 +710,7 @@ def install(game: Path, source: Path, owner_folder: bool = False, engine_at: Pat
         if (engine / name).exists():
             os.replace(engine / name, logs / name)
     saves = storage_dir(source)
-    if not (engine / "storage").exists() and saves is not None:
+    if not (engine / "storage").exists() and saves is not None and not marker.get("saves_dir"):
         shutil.copytree(saves, engine / "storage" / saves.name)
     (game / BRIDGE_EXE).unlink(missing_ok=True)
     marker["added"] = sorted(set(marker.get("added", [])) - {BRIDGE_EXE})
@@ -552,6 +824,8 @@ def uninstall(game: Path, purge: bool = False, owner_folder: bool = False) -> st
     marker_path(game, engine).unlink(missing_ok=True)
     (game / MARKER).unlink(missing_ok=True)
     kept = "" if purge or not (engine / "storage").exists() else f"; saves kept in {engine / 'storage'}"
+    if marker.get("saves_dir") and not kept:
+        kept = f"; saves kept in {marker['saves_dir']}"
     return f"uninstalled from {game}: {EXE} restored{kept}"
 
 
@@ -579,6 +853,8 @@ def check(game: Path, seconds: int) -> tuple[bool, str]:
     log = engine / LOGS / "boot.txt"
     saves = storage_dir(engine)
     errors = saves / "Documents" / "Bifrost" / "bh-errors.txt" if saves else Path("-")
+    if (documents := bifrost_documents(game)) is not None:
+        errors = report_file(documents, "bh-errors.txt")
     read = lambda p: p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
     ok, report = bifrost_export.boot_verdict(read(log), read(errors))
     return ok, report + "\n" + starts(game, last=1)
@@ -612,7 +888,7 @@ def sim(version: str) -> Path:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", choices=["stub", "sim", "install", "move", "uninstall", "check", "status"])
+    p.add_argument("command", choices=["stub", "sim", "install", "move", "adopt-saves", "uninstall", "check", "status"])
     p.add_argument("--game", type=Path, help="the Brawlhalla install folder")
     p.add_argument("--from", dest="source", type=Path, default=Path("C:/Coding/BRAWLHALLA PROJECTS/bifrost/bifrost-main"),
                    help="the exported Bifrost-on-Heaps folder (tools/bifrost_export.py)")
@@ -637,6 +913,8 @@ def main(argv: list[str] | None = None) -> int:
             if a.engine_dir is None:
                 raise InstallError("--engine-dir is required")
             print(move(a.game, a.engine_dir, a.owner_folder))
+        elif a.command == "adopt-saves":
+            print(adopt_saves(a.game, a.owner_folder))
         elif a.command == "uninstall":
             print(uninstall(a.game, a.purge, a.owner_folder))
         elif a.command == "check":

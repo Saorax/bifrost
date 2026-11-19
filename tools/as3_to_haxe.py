@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from dataclasses import dataclass, field
+from functools import lru_cache
 import hashlib
 from pathlib import Path
 import json
@@ -15,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "build" / "port-haxe" / "10.11" / "src"
 VERSION = "10.11"
 DEOBFUSCATED_CLASSES = ""
+ALIASED_CLASSES = ""
 
 TYPE_MAP = {
     "Array": "Array<Dynamic>",
@@ -8886,12 +8888,11 @@ def restore_typed_vector_index_reads(span: str) -> str:
             continue
 
         body = span[body_open + 1:body_close]
-        audited_fields = AUDITED_TYPED_VECTOR_READS.get(
-            ((class_name or "").lower(), match.group(1)), set()
-        )
-        exact_reads = AUDITED_EXACT_VECTOR_READS.get(
-            ((class_name or "").lower(), match.group(1)), set()
-        )
+        lookup = ((class_name or "").lower(), match.group(1))
+        audited_fields = next((v for (c, m), v in AUDITED_TYPED_VECTOR_READS.items() if (c.lower(), m) == lookup),
+                              set())
+        exact_reads = next((v for (c, m), v in AUDITED_EXACT_VECTOR_READS.items() if (c.lower(), m) == lookup),
+                           set())
         types = dict(visible_types)
         for param in split_top_level_commas(span[paren + 1:close_paren]):
             typed = re.match(rf"\s*([A-Za-z_]\w*)\s*:\s*({type_pattern})(?=\s|[=,;)]|$)", param)
@@ -10821,6 +10822,7 @@ def should_cast_reference_type(type_name: str, cast_types: set[str]) -> bool:
         or type_name in {"IMap", "IntMap", "StringMap"}
         or type_name.startswith("Class_")
         or type_name.startswith("class_")
+        or type_name in ALIASED_CLASSES.split()
         or type_name.endswith("Event")
         or type_name.endswith("Type")
         or type_name.endswith("Data")
@@ -10936,9 +10938,10 @@ def convert_known_argument_coercions(span: str) -> str:
         lambda m: f".method_1467({string_arg(m.group(1))})",
         span,
     )
-    span = re.sub(r"\bType\.allEnums\s*\(\s*((?:Class|class)_\d+)\s*\)", r"Type.allEnums(untyped \1)", span)
-    span = re.sub(r"\bType\.createEnum\s*\(\s*((?:Class|class)_\d+)\s*,", r"Type.createEnum(untyped \1,", span)
-    span = re.sub(r"\bType\.createEnumIndex\s*\(\s*((?:Class|class)_\d+)\s*,", r"Type.createEnumIndex(untyped \1,", span)
+    game_class = r"(?:Class|class)_\d+" + "".join(f"|{re.escape(name)}" for name in ALIASED_CLASSES.split())
+    span = re.sub(rf"\bType\.allEnums\s*\(\s*({game_class})\s*\)", r"Type.allEnums(untyped \1)", span)
+    span = re.sub(rf"\bType\.createEnum\s*\(\s*({game_class})\s*,", r"Type.createEnum(untyped \1,", span)
+    span = re.sub(rf"\bType\.createEnumIndex\s*\(\s*({game_class})\s*,", r"Type.createEnumIndex(untyped \1,", span)
     span = convert_named_call_args(span, "Type.enumConstructor", {0: cast_arg})
     span = convert_string_returns(span)
     span = convert_string_typed_initializers(span)
@@ -11471,6 +11474,39 @@ def convert_type_tested_downcasts(span: str) -> str:
     if not TYPE_TESTED_DOWNCASTS:
         return span
     return convert_typed_null_conditionals(TYPE_TESTED_DOWNCAST_RE.sub(rewrite, span))
+
+
+TYPED_RETURN_HEAD_RE = re.compile(r"\bfunction\s+\w+\s*\([^)]*\)\s*:\s*(?P<type>[A-Z][\w.]*)\s*\{")
+LOCAL_RETURN_RE = re.compile(r"(?P<head>\breturn\s+)(?P<x>_loc\d+_)(?P<tail>\s*;)")
+
+
+def convert_type_tested_returns(span: str) -> str:
+    out: list[str] = []
+    i = 0
+    for head in TYPED_RETURN_HEAD_RE.finditer(span):
+        if head.start() < i:
+            continue
+        open_brace = head.end() - 1
+        close = find_matching_right(span, open_brace)
+        if close < 0:
+            continue
+        returned = head.group("type")
+        body = span[open_brace:close]
+
+        def rewrite(m: re.Match[str]) -> str:
+            name = m.group("x")
+            declared = re.search(rf"\bvar\s+{name}\s*:\s*([\w.]+)", body)
+            tests = [body.find(f"{fn}({name}, {returned})") for fn in ("Std.isOfType", f"{AS3_HELPER}.isType")]
+            tested = min((t for t in tests if t >= 0), default=-1)
+            if declared is None or declared.group(1) == returned or tested < 0 or tested > m.start():
+                return m.group(0)
+            return f"{m.group('head')}cast {name}{m.group('tail')}"
+
+        out.append(span[i:open_brace])
+        out.append(LOCAL_RETURN_RE.sub(rewrite, body))
+        i = close
+    out.append(span[i:])
+    return "".join(out)
 
 
 TYPED_NULL_CONDITIONAL_RE = re.compile(r"\bvar\s+(?P<name>_loc\d+_)\s*:\s*(?P<type>[A-Z][\w.]*)\s*=\s*cast\(\(")
@@ -13200,6 +13236,7 @@ def convert_text(text: str, source_name: str = "<memory>") -> tuple[str, Convert
     body = remove_redundant_boolean_branch_helpers(body)
     body = convert_pseudo_string_local_assignments(body)
     body = convert_type_tested_downcasts(body)
+    body = convert_type_tested_returns(body)
     body = restore_audited_expression_semantics(body, late_only=True)
     body = restore_audited_static_string_literals(body)
     body = convert_empty_vector_constructors(body)
@@ -14293,7 +14330,7 @@ def fix_numeric_cast_shift_division_grouping(text: str) -> str:
 def fix_ternary_boolean_tail_grouping(text: str) -> str:
     fixed: list[str] = []
     pattern = re.compile(
-        r"(?P<prefix>(?<![=!<>])=\s*)"
+        r"(?P<prefix>(?<![=!<>])=(?!=)\s*)"
         r"(?P<expr>(?!\()[^;\n]*\?[^;\n]*:[^;\n]*\))\s*"
         r"(?P<op>&&|\|\|)"
     )
@@ -14883,6 +14920,22 @@ def version_build_dir(version: str) -> Path:
     return ROOT / "build" / "port-haxe" / version
 
 
+@lru_cache(maxsize=None)
+def version_aliases(version: str) -> dict[str, str]:
+    path = ROOT / "client" / "symbols" / f"{version}.aliases.json"
+    if not path.exists():
+        return {}
+    return {e["alias"]: e["renamed"].split(".")[-1] for e in json.loads(path.read_text(encoding="utf-8"))["aliases"]}
+
+
+def aliased_classes(version: str) -> set[str]:
+    if version == "10.11":
+        return set()
+    known = version_aliases("10.11")
+    return {alias for alias, renamed in version_aliases(version).items()
+            if OBFUSCATED_CLASS_RE.fullmatch(renamed) and alias not in known}
+
+
 def use_version(version: str) -> None:
     global VERSION, FIELD_INIT_ORDER_PATH, HOISTED_LOCALS_PATH, TEMP_RECEIVERS_PATH, ELEMENT_TYPES_PATH
     global RECOVERED_METHODS_DIR, _HOISTED_LOCALS, _TEMP_RECEIVERS, _ELEMENT_TYPES, _FIELD_INIT_ORDER, _UINT_MEMBERS
@@ -14893,13 +14946,15 @@ def use_version(version: str) -> None:
         _HOISTED_LOCALS = _TEMP_RECEIVERS = _ELEMENT_TYPES = _FIELD_INIT_ORDER = _UINT_MEMBERS = None
     VERSION = version
     FIELD_INIT_ORDER_PATH, HOISTED_LOCALS_PATH, TEMP_RECEIVERS_PATH, ELEMENT_TYPES_PATH = paths
-    global DEOBFUSCATED_CLASSES
+    global DEOBFUSCATED_CLASSES, ALIASED_CLASSES
     DEOBFUSCATED_CLASSES = ""
+    ALIASED_CLASSES = " ".join(sorted(aliased_classes(version)))
     names = ROOT / "build" / "version-names" / f"10.11_to_{version}.json"
     if version != "10.11" and names.exists():
         carried = json.loads(names.read_text(encoding="utf-8"))["carried"]
         DEOBFUSCATED_CLASSES = " ".join(sorted(
-            new for old, new in carried.items() if old.startswith("class_") and not re.fullmatch(r"class_\d+", new)))
+            {new for old, new in carried.items() if old.startswith("class_") and not re.fullmatch(r"class_\d+", new)}
+            | set(ALIASED_CLASSES.split())))
     RECOVERED_METHODS_DIR = ROOT / "src" / "as3-recovered" / version
 
 

@@ -5,7 +5,7 @@
     python -I -u player_engine.py official|uninstall-official --game <Brawlhalla folder> --layer <official package>
 
 ``install`` makes Bifrost on the new engine from the player's own game on this PC and installs it; each step prints
-``step n/m: ...`` (the app shows it). the work folder (default ``%LOCALAPPDATA%\\Bifrost\\engine-work``) gets a copy
+``step n/m: ...`` (the app shows it). the work folder (default ``%LOCALAPPDATA%\\Bifrost\\Build\\Work``) gets a copy
 of the kit's tools with the toolchain linked in; the game code it makes stays there and in the install. ``--until``
 stops after a step (for checks). ``official`` builds the official-servers game (bh-client's layer, ``--layer``: the
 unpacked official release) from the same game and installs it beside Bifrost. in the workspace this file is only the
@@ -28,7 +28,8 @@ if str(KIT) not in sys.path:
     sys.path.insert(0, str(KIT))
 from tools import game_files
 
-VERSION = "11.00.49"
+VERSION = "11.01"
+SAVES_VERSION = "11.00"
 STEPS = ["check", "prepare", "decompile", "convert", "assemble", "build", "install"]
 OFFICIAL = "official"
 
@@ -60,7 +61,7 @@ def expected_swf() -> str:
 
 def default_work() -> Path:
     base = os.environ.get("LOCALAPPDATA") or str(Path.home() / ".local" / "share")
-    return Path(base) / "Bifrost" / "engine-work"
+    return Path(base) / "Bifrost" / "Build" / "Work"
 
 
 def env() -> dict:
@@ -233,7 +234,7 @@ def convert(work: Path) -> None:
 
 
 ENGINE_LINKED = ("src", "runtime", "lib", "tools")
-STORAGE = Path("BhPort-" + ".".join(VERSION.split(".")[:2])) / "Documents" / "Bifrost"
+STORAGE = Path("BhPort-" + SAVES_VERSION) / "Documents" / "Bifrost"
 
 
 def tools_module(work: Path, name: str):
@@ -330,7 +331,8 @@ def install_engine(game: Path, work: Path, server: str | None = None) -> None:
     os.environ["BIFROST_LAUNCHER_DIR"] = str(KIT / "launcher")
     steam = tools_module(work, "port_steam_install")
     try:
-        print(steam.install(game, work / "engine-build"), flush=True)
+        print(steam.install(game, work / "engine-build", engine_at=steam.player_engine_dir(game)), flush=True)
+        print(steam.adopt_saves(game), flush=True)
     except steam.InstallError as e:
         raise Failed(str(e))
     print(set_server(game, server), flush=True)
@@ -348,7 +350,10 @@ def set_server(game: Path, address: str | None = None) -> str:
     if address:
         host, _, port = address.rpartition(":")
         server = {"host": host, "port": int(port)}
-    path = engine_dir(game) / "storage" / STORAGE / "bh-server.json"
+    from tools import port_steam_install
+    documents = port_steam_install.bifrost_documents(game)
+    path = (port_steam_install.documents_file(documents, "bh-server.json") if documents is not None
+            else engine_dir(game) / "storage" / STORAGE / "bh-server.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     cfg = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     if (cfg.get("host"), cfg.get("port")) != (server["host"], server["port"]):
@@ -431,9 +436,10 @@ def install_official(game: Path, work: Path, layer: Path) -> None:
     steam = tools_module(work, "port_steam_install")
     try:
         if not marker_file(game).exists():
-            print(steam.install(game, KIT / "engine"), flush=True)
+            print(steam.install(game, KIT / "engine", engine_at=steam.player_engine_dir(game)), flush=True)
         elif (fixed := steam.restore_launcher(game)) is not None:
             print(fixed, flush=True)
+        print(steam.adopt_saves(game), flush=True)
     except steam.InstallError as e:
         raise Failed(str(e))
     engine = engine_dir(game)
