@@ -228,7 +228,7 @@ def match_versions(a: str, b: str, root: Path | None = None,
         data = [json.loads(m.read_text(encoding="utf-8")) for m in packets]
         if [d.get("swf_sha256") for d in data] == digest:
             for kind in ("packets", "handlers"):
-                names = apply_packets(names, match_packets(data[0].get(kind, {}), data[1].get(kind, {}), {}))
+                names = apply_packets(names, match_packets(data[0].get(kind, {}), data[1].get(kind, {}), names))
     return names, pairs
 
 
@@ -243,13 +243,32 @@ def match_packets(src: dict[str, int], dst: dict[str, int], names: dict[str, str
     by_number: dict[int, list[str]] = defaultdict(list)
     for name, n in dst.items():
         by_number[n].append(name)
+    anchors = sorted((n, dst[names[name]]) for name, n in src.items() if names.get(name) in dst)
+    src_numbers, dst_numbers = set(src.values()), set(dst.values())
     taken = set(names.values())
     out = {}
     for name, n in src.items():
-        cands = by_number.get(n, [])
-        if name not in names and OBF.fullmatch(name) and len(cands) == 1 and cands[0] not in taken:
+        if name in names or not OBF.fullmatch(name):
+            continue
+        target = packet_target(anchors, n, src_numbers, dst_numbers)
+        cands = by_number.get(target, []) if target is not None else []
+        if len(cands) == 1 and cands[0] not in taken:
             out[name] = cands[0]
+            taken.add(cands[0])
     return out
+
+
+def packet_target(anchors: list[tuple[int, int]], n: int, src_numbers: set[int], dst_numbers: set[int]) -> int | None:
+    if not anchors:
+        return n
+    below = [a for a in anchors if a[0] < n]
+    above = [a for a in anchors if a[0] > n]
+    if not below or not above:
+        return None
+    (a, a2), (b, b2) = below[-1], above[0]
+    if b - a != b2 - a2 or not all(x in src_numbers for x in range(a, b + 1))             or not all(x in dst_numbers for x in range(a2, b2 + 1)):
+        return None
+    return a2 + n - a
 
 
 def class_traits(symbol_map: dict) -> dict[str, list[tuple[str, str, str]]]:

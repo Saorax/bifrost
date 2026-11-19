@@ -149,10 +149,6 @@ package bh.mods.optionsscreen
                if(hub.isActive)
                {
                   var bar:Object = hub.var_6263;
-                  if(focusBefore != null && focusBefore !== this && focusBefore !== hub && focusBefore !== bar)
-                  {
-                     ScreenBase.previousFocusedScreen = focusBefore;
-                  }
                   if(bar != null && bar.var_3094 == 7 && bar.isActive)
                   {
                      bar.method_4483();

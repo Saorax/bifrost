@@ -83,7 +83,7 @@ package bh.mods.optionsscreen
          screen.hub = hub;
          if(!screen.isActive)
          {
-            screen.focusBefore = ScreenBase.previousFocusedScreen;
+            screen.focusBefore = ScreenBase.getPreviousFocusedScreen();
          }
          try
          {

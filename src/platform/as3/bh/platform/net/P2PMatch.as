@@ -461,7 +461,7 @@ package bh.platform.net
             {
                PrivateServer.log("P2P room " + room + " not started: no other player left in the room");
                core.method_384();
-               if(ScreenBase.focusedScreen === ScreenManager.levelSelectScreen)
+               if(ScreenBase.getFocusedScreen() === ScreenManager.levelSelectScreen)
                {
                   ScreenBase.setFocus(ScreenManager.var_4257);
                }

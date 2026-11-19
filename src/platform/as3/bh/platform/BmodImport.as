@@ -208,7 +208,7 @@ package bh.platform
 
       private static function menuFree() : Boolean
       {
-         if(!(ScreenBase.focusedScreen is ScreenMainMenu))
+         if(!(ScreenBase.getFocusedScreen() is ScreenMainMenu))
          {
             return false;
          }

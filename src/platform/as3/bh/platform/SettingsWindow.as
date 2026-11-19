@@ -293,7 +293,7 @@ package bh.platform
             {
                Platform.log(logName + ": text input failed: " + e.message);
             }
-            if(self.isActive && ScreenBase.focusedScreen !== self)
+            if(self.isActive && ScreenBase.getFocusedScreen() !== self)
             {
                ScreenBase.setFocus(self);
             }

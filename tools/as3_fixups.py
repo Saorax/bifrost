@@ -5,7 +5,9 @@
 
 the fixes are rules, not per-file patches, so they apply to any export of any version:
 
-- bytecode splice: a method whose FFDec body still holds a ``§§`` pseudo-op is code AS3 cannot express. its body
+- bytecode splice: a method whose FFDec body still holds a ``§§`` pseudo-op is code AS3 cannot express, and one with
+  FFDec's misprinted search loop (``do { if(i < n) { continue; } } while(x = i++, ...);``, which drops the loop's
+  exit) is code FFDec got wrong. its body
   becomes a stub that throws ``BH_SPLICE <Class>.<method>``, with the FFDec body kept underneath as ``//``
   comments; tools/splice_as3.py puts the original method body back. FFDec's rendering of an unusual script
   initializer (the ``§§newclass`` lines after the package block) is dropped and listed as a script splice. a
@@ -67,6 +69,12 @@ def find_body(lines: list[str], start: int) -> tuple[int, int] | None:
 
 
 SUPER_CALL = re.compile(r"^\s*super\(.*\);\s*$")
+CONTINUE_LOOP = re.compile(r"^\s*do\s*\n\s*\{\s*\n\s*if\(.*\)\s*\n\s*\{\s*\n\s*continue;\s*\n\s*\}\s*\n\s*\}\s*\n"
+                           r"\s*while\(.*,", re.M)
+
+
+def misprinted_loops(body: list[str]) -> int:
+    return len(CONTINUE_LOOP.findall("\n".join(body)))
 
 
 def splice_methods(lines: list[str], cls: str) -> tuple[list[str], list[dict]]:
@@ -76,13 +84,15 @@ def splice_methods(lines: list[str], cls: str) -> tuple[list[str], list[dict]]:
         body = find_body(lines, i) if match else None
         supers = [line for line in lines[body[0]:body[1]] if SUPER_CALL.match(line)] if body else []
         constructor = bool(match) and match["name"] == cls.rsplit(".", 1)[-1] and len(supers) > 1
-        if body and (constructor or any(PSEUDO in line for line in lines[body[0]:body[1]])):
+        loops = misprinted_loops(lines[body[0]:body[1]]) if body else 0
+        if body and (constructor or loops or any(PSEUDO in line for line in lines[body[0]:body[1]])):
             opened, closed = body
             name = match["name"] if not match["acc"] else f"{match['acc']} {match['name']}"
             label = f"{cls}.{name}"
             splices.append({"class": cls, "method": name, "line": i + 1,
                             "pseudo_ops": sum(line.count(PSEUDO) for line in lines[opened:closed])}
-                           | ({"super_calls": len(supers)} if constructor else {}))
+                           | ({"super_calls": len(supers)} if constructor else {})
+                           | ({"misprinted_loops": loops} if loops else {}))
             out += [lines[i], lines[opened]] + (["         " + supers[0].strip()] if constructor else []) + [
                     f'         throw new Error("{SPLICE_TAG} {label}");',
                     "         // FFDec body (pseudo-ops; replaced by the original bytecode in 1.3):"]
@@ -172,7 +182,7 @@ def fix_tree(src: Path, out: Path) -> dict:
         rel = path.relative_to(out)
         cls = class_name(lines, rel)
         changed = False
-        if PSEUDO in text or len(re.findall(r"(?m)^\s*super\(", text)) > 1:
+        if PSEUDO in text or len(re.findall(r"(?m)^\s*super\(", text)) > 1 or CONTINUE_LOOP.search(text):
             lines, found = splice_methods(lines, cls)
             lines, init = drop_script_init(lines, cls)
             for item in found + init:

@@ -485,9 +485,9 @@ package bh.mods.examplescreen
 
       override public function Display() : void
       {
-         if(!isActive && ScreenBase.focusedScreen !== this)
+         if(!isActive && ScreenBase.getFocusedScreen() !== this)
          {
-            openedFrom = ScreenBase.focusedScreen;
+            openedFrom = ScreenBase.getFocusedScreen();
          }
          super.Display();
       }

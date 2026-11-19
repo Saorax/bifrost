@@ -207,14 +207,14 @@ package bh.platform
          {
             var board:Object = ScreenManager.var_6219;
             settled = !Platform.matchRunning && !PostMatchStats.replaying && !(board != null && board.isActive) &&
-               ScreenBase.focusedScreen != null;
+               ScreenBase.getFocusedScreen() != null;
          }
          catch(e:Error)
          {
          }
-         if(!settled || ScreenBase.focusedScreen !== settledOn)
+         if(!settled || ScreenBase.getFocusedScreen() !== settledOn)
          {
-            settledOn = settled ? ScreenBase.focusedScreen : null;
+            settledOn = settled ? ScreenBase.getFocusedScreen() : null;
             settledAt = getTimer();
             return;
          }

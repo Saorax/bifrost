@@ -47,9 +47,12 @@ def alias_back_map(aliases: list[dict], back: dict[str, str]) -> dict[str, str]:
     out = {}
     for e in aliases:
         renamed = e["renamed"].split(".")[-1]
-        if renamed not in back:
+        original = back.get(renamed)
+        if original is None and e.get("original", "").split(".")[-1] == renamed:
+            original = renamed
+        if original is None:
             raise RenameError(f"alias {e['alias']}: renamed string {renamed} has no original in the map")
-        if out.setdefault(e["alias"], back[renamed]) != back[renamed]:
+        if out.setdefault(e["alias"], original) != original:
             raise RenameError(f"alias {e['alias']} stands for more than one original")
     clash = sorted(set(out) & set(back))
     if clash:

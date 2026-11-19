@@ -66,7 +66,7 @@ package bh.platform.net
             if(shown)
             {
                core.method_384();
-               if(ScreenBase.focusedScreen === ScreenManager.levelSelectScreen)
+               if(ScreenBase.getFocusedScreen() === ScreenManager.levelSelectScreen)
                {
                   ScreenBase.setFocus(ScreenManager.var_4257);
                }

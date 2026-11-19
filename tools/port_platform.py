@@ -22,6 +22,9 @@ from tools import version_match
 FFDEC = re.compile(r"\b(?:class|method|var|const|package|namespace)_\d+\b")
 MOD_NAME = re.compile(r"block-(\d+)/([^\"/]+)\.class\.asasm|(?<![\w$])_-[A-Za-z0-9$]+")
 TEXT = {".as", ".json", ".asasm", ".txt", ".md", ".xml"}
+VERSION_FILE = re.compile(r"\d+(?:\.\d+)+\.json")
+GETTERS = {"focusedScreen": "getFocusedScreen", "previousFocusedScreen": "getPreviousFocusedScreen"}
+READ = re.compile(r'getproperty (QName\(PackageNamespace\(""\), ")(_-[A-Za-z0-9$]+)("\))')
 
 
 class PortError(Exception):
@@ -63,6 +66,8 @@ class Porter:
         self.src, self.dst, self.names = src, dst, names
         self.done: dict[str, str] = {}
         self.missing: dict[str, str] = {}
+        self.fallback: dict[str, str] = {}
+        self.getters: dict[str, str] = {}
 
     def original(self, name: str) -> str | None:
         if not version_match.OBF.fullmatch(name):
@@ -83,7 +88,7 @@ class Porter:
         return new
 
     def obfuscated(self, name: str) -> str:
-        new = self.names.get(name)
+        new = self.names.get(name) or self.fallback.get(name)
         if new is None:
             return self.fail(name, "no match in the target")
         self.done[name] = new
@@ -92,6 +97,14 @@ class Porter:
     def fail(self, name: str, why: str) -> str:
         self.missing[name] = why
         return name
+
+    def getter_read(self, m: re.Match) -> str:
+        getter = self.getters.get(m.group(2))
+        if getter is None:
+            return m.group(0)
+        self.missing.pop(m.group(2), None)
+        self.done[m.group(2)] = f"{getter}() (the field became a getter)"
+        return f"callproperty {m.group(1)}{getter}{m.group(3)}, 0"
 
     def class_file(self, m: re.Match) -> str:
         stem = m.group(2)
@@ -102,6 +115,44 @@ class Porter:
             self.fail(m.group(0), f"class {cls} isn't in the target's symbol map")
             return m.group(0)
         return f"block-{block}/{self.dst.file[cls]}.class.asasm"
+
+
+def target_aliases(version: str) -> dict[str, str]:
+    path = ROOT / "client" / "symbols" / f"{version}.aliases.json"
+    if not path.exists():
+        return {}
+    entries = json.loads(path.read_text(encoding="utf-8"))["aliases"]
+    return {e["renamed"].split(".")[-1]: e["alias"] for e in entries}
+
+
+def alias_names(src_ver: str, dst_ver: str, names: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+    def entries(version: str) -> list[dict]:
+        path = ROOT / "client" / "symbols" / f"{version}.aliases.json"
+        return json.loads(path.read_text(encoding="utf-8"))["aliases"] if path.exists() else []
+
+    src: dict[str, str] = {}
+    for e in entries(src_ver):
+        member = e["original"].split(".")[-1]
+        if version_match.OBF.fullmatch(member):
+            src[member] = e["alias"].split(".")[-1] if member not in src else ""
+    dst: dict[str, str] = {}
+    for e in entries(dst_ver):
+        alias = e["alias"].split(".")[-1]
+        dst[alias] = e["original"].split(".")[-1] if alias not in dst else ""
+    fallback: dict[str, str] = {}
+    getters: dict[str, str] = {}
+    for member, alias in src.items():
+        if not alias or member in names:
+            continue
+        if dst.get(alias):
+            fallback[member] = dst[alias]
+        elif alias in GETTERS and dst.get(GETTERS[alias]):
+            getters[member] = dst[GETTERS[alias]]
+    return fallback, getters
+
+
+def aliased(name: str, aliases: dict[str, str]) -> str:
+    return aliases.get(name, name)
 
 
 def port_tree(src: Path, out: Path, rewrite) -> int:
@@ -119,12 +170,44 @@ def port_tree(src: Path, out: Path, rewrite) -> int:
     return changed
 
 
+def version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
+def via_version(src_ver: str, dst_ver: str) -> str | None:
+    found = [p.name[:-5] for p in (ROOT / "client" / "symbols").glob("*.json") if VERSION_FILE.fullmatch(p.name)]
+    between = [v for v in found if version_key(src_ver) < version_key(v) < version_key(dst_ver)
+               and (ROOT / "versions" / v / "BrawlhallaAir.swf").is_file()]
+    return max(between, key=version_key) if between else None
+
+
+def matched_names(src_ver: str, dst_ver: str) -> dict[str, str]:
+    names = dict(version_match.match_versions(src_ver, dst_ver)[0])
+    via = via_version(src_ver, dst_ver)
+    if via is None:
+        return names
+    first = version_match.match_versions(src_ver, via)[0]
+    second = version_match.match_versions(via, dst_ver)[0]
+    taken = set(names.values())
+    for name, middle in first.items():
+        end = second.get(middle)
+        if name not in names and end is not None and end not in taken:
+            names[name] = end
+            taken.add(end)
+    return names
+
+
 def port(src_ver: str, dst_ver: str, out: Path | None = None) -> tuple[Path, Porter]:
-    porter = Porter(SymbolMap(src_ver), SymbolMap(dst_ver), version_match.match_versions(src_ver, dst_ver)[0])
+    porter = Porter(SymbolMap(src_ver), SymbolMap(dst_ver), matched_names(src_ver, dst_ver))
+    porter.fallback, porter.getters = alias_names(src_ver, dst_ver, porter.names)
     out = out or ROOT / "build" / f"port-{dst_ver}"
     out.mkdir(parents=True, exist_ok=True)
-    n_platform = port_tree(ROOT / "src" / "platform", out / "platform",
-                           lambda t: FFDEC.sub(lambda m: porter.ffdec(m.group(0)), t))
+    aliases = target_aliases(dst_ver)
+
+    def as3(text: str) -> str:
+        return FFDEC.sub(lambda m: aliased(porter.ffdec(m.group(0)), aliases), text)
+
+    n_platform = port_tree(ROOT / "src" / "platform", out / "platform", as3)
     patches = out / "platform" / "patches.json"
     if patches.exists():
         text = patches.read_text(encoding="utf-8")
@@ -133,14 +216,14 @@ def port(src_ver: str, dst_ver: str, out: Path | None = None) -> tuple[Path, Por
             patches.write_text(new, encoding="utf-8")
 
     def mods(text: str) -> str:
-        return MOD_NAME.sub(lambda m: porter.class_file(m) if m.group(1) else porter.obfuscated(m.group(0)), text)
+        text = MOD_NAME.sub(lambda m: porter.class_file(m) if m.group(1) else porter.obfuscated(m.group(0)), text)
+        return READ.sub(porter.getter_read, text)
 
     n_mods = port_tree(ROOT / "src" / "mods", out / "mods", mods)
     public_missing = dict(porter.missing)
     n_private = 0
     if (ROOT / "data" / "mods").is_dir():
-        n_private = port_tree(ROOT / "data" / "mods", out / "data" / "mods",
-                              lambda t: mods(FFDEC.sub(lambda m: porter.ffdec(m.group(0)), t)))
+        n_private = port_tree(ROOT / "data" / "mods", out / "data" / "mods", lambda t: mods(as3(t)))
     private_missing = {k: v for k, v in porter.missing.items() if k not in public_missing}
     porter.missing = public_missing
     lines = [f"Ported src/platform and src/mods from {src_ver} to {dst_ver} (tools/port_platform.py).",

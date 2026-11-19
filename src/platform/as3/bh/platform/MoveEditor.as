@@ -223,7 +223,7 @@ package bh.platform
          }
          if(!window.isActive)
          {
-            window.focusBefore = ScreenBase.focusedScreen;
+            window.focusBefore = ScreenBase.getFocusedScreen();
             if(recent.length > 0)
             {
                window.move = recent[0];

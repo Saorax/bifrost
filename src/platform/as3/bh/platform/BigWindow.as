@@ -224,9 +224,9 @@ package bh.platform
 
       override public function Display() : void
       {
-         if(!isActive && ScreenBase.focusedScreen !== this)
+         if(!isActive && ScreenBase.getFocusedScreen() !== this)
          {
-            openedFrom = ScreenBase.focusedScreen;
+            openedFrom = ScreenBase.getFocusedScreen();
          }
          var at:int = opened.indexOf(this);
          if(at >= 0)
@@ -297,7 +297,7 @@ package bh.platform
          }
          try
          {
-            if(ScreenBase.focusedScreen !== window)
+            if(ScreenBase.getFocusedScreen() !== window)
             {
                return;
             }
@@ -305,8 +305,8 @@ package bh.platform
             {
                ScreenBase.setFocus(to);
             }
-            else if(ScreenBase.previousFocusedScreen != null && ScreenBase.previousFocusedScreen !== window &&
-                    ScreenBase.previousFocusedScreen.isActive)
+            else if(ScreenBase.getPreviousFocusedScreen() != null && ScreenBase.getPreviousFocusedScreen() !== window &&
+                    ScreenBase.getPreviousFocusedScreen().isActive)
             {
                ScreenBase.restorePreviousFocus();
             }
