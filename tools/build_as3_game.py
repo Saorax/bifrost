@@ -134,8 +134,8 @@ def cache_store(key: str, out_dir: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--version", default="11.01", help="game version to build (default 11.01, the current one since "
-                   "2026-11-18; 10.11 for the old copy). src/platform and src/mods name 10.11's symbols and are "
+    p.add_argument("--version", default="11.01.36", help="game version to build (default 11.01.36, the current one "
+                   "since 2026-11-19; 10.11 for the old copy). src/platform and src/mods name 10.11's symbols and are "
                    "ported to it")
     p.add_argument("--export", action="store_true", help="re-export the AS3 tree first (wipes edits in it)")
     p.add_argument("--no-mods", action="store_true", help="stop after renaming back")

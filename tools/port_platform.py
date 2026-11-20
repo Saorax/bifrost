@@ -186,7 +186,7 @@ def matched_names(src_ver: str, dst_ver: str) -> dict[str, str]:
     via = via_version(src_ver, dst_ver)
     if via is None:
         return names
-    first = version_match.match_versions(src_ver, via)[0]
+    first = matched_names(src_ver, via)
     second = version_match.match_versions(via, dst_ver)[0]
     taken = set(names.values())
     for name, middle in first.items():
