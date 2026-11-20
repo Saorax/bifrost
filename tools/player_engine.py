@@ -28,7 +28,7 @@ if str(KIT) not in sys.path:
     sys.path.insert(0, str(KIT))
 from tools import game_files
 
-VERSION = "11.01"
+VERSION = "11.01.36"
 SAVES_VERSION = "11.00"
 STEPS = ["check", "prepare", "decompile", "convert", "assemble", "build", "install"]
 OFFICIAL = "official"

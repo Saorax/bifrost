@@ -7,6 +7,7 @@ class ReplayViewApp extends HeapsMain {
 	static inline var KIND_NOTE = 2;
 	static var SPEED_STEPS = 11;
 	static inline var END_PAD_MS = 2500;
+	static inline var OFF_PICTURE = 100000;
 	static inline var RENDER_W = 1920;
 	static inline var RENDER_H = 1080;
 
@@ -28,6 +29,18 @@ class ReplayViewApp extends HeapsMain {
 	var bytes:haxe.io.Bytes;
 	var name:String;
 	var lastFocused = "";
+	var options = new Map<String, Bool>();
+	var readback:hxd.Pixels;
+
+	static var FLAGS:Map<String, Array<String>> = [
+		"names" => ["var_10677", "sReplayShowVerbose"],
+		"damage" => ["var_4338", "sReplayShowDamage"],
+		"hitboxes" => ["var_14708", "sReplayShowHitBox"],
+		"hurtboxes" => ["var_2223", "sReplayShowHurtBox"],
+		"impulse" => ["var_12529"],
+		"stun" => ["var_15005"],
+		"spawns" => ["var_2800"],
+	];
 
 	public static function start(args:Array<String>):Void {
 		if (args.length < 2) {
@@ -165,9 +178,12 @@ class ReplayViewApp extends HeapsMain {
 				inject(new hxd.Event(EFocus));
 				if (boxes) setBoxes(true);
 				note({state: "playing", start: Std.int(core.var_5381), length: length(), players: Std.int(core.var_7148.length)});
+				for (k in options.keys())
+					try setOption(k, options.get(k)) catch (e:Dynamic) HeapsMain.log("replay-view: option " + k + ": " + e);
 			}
 			return;
 		}
+		hideControls();
 		if (!ended && Std.isOfType(HeapsMain.gameFocusedScreen(), ScreenMainMenu)) {
 			ended = true;
 			note({state: "ended"});
@@ -231,6 +247,10 @@ class ReplayViewApp extends HeapsMain {
 				case "boxes":
 					boxes = parts[1] == "on";
 					if (phase == 2) setBoxes(boxes);
+				case "option":
+					var on = parts.length > 2 && parts[2] == "on";
+					options.set(parts[1], on);
+					if (phase == 2) setOption(parts[1], on);
 				case "restart":
 					if (phase == 2 && ended && Std.isOfType(HeapsMain.gameFocusedScreen(), ScreenMainMenu)) load(ScreenManager.owner);
 					else {
@@ -286,12 +306,72 @@ class ReplayViewApp extends HeapsMain {
 		}
 	}
 
+	static function hideControls():Void {
+		var h:Dynamic = hud();
+		if (h == null) return;
+		var panel:flash.display.DisplayObject = cast h.panelClip;
+		if (panel != null) {
+			if (panel.alpha != 0) panel.alpha = 0;
+			if (panel.y < OFF_PICTURE / 2) panel.y += OFF_PICTURE;
+		}
+		var stats = Type.resolveClass("bh.platform.PostMatchStats");
+		var layer:flash.display.DisplayObject = stats != null ? cast Reflect.field(stats, "buttonLayer") : null;
+		if (layer != null && layer.visible) layer.visible = false;
+	}
+
+	static function call(target:Dynamic, names:Array<String>):Void {
+		for (n in names) {
+			var f = Reflect.field(target, n);
+			if (f != null && Reflect.isFunction(f)) {
+				Reflect.callMethod(target, f, []);
+				return;
+			}
+		}
+	}
+
+	function setOption(name:String, on:Bool):Void {
+		var names = FLAGS.get(name);
+		if (names == null) return;
+		var statics = Type.getClassFields(GameApp);
+		for (n in names)
+			if (statics.indexOf(n) >= 0) {
+				Reflect.setField(GameApp, n, on);
+				break;
+			}
+		var core:Dynamic = ScreenManager.owner;
+		if (core == null) return;
+		switch (name) {
+			case "hitboxes":
+				call(core, on ? ["method_2374", "EnableHitboxes"] : ["method_9022", "DisableHitboxes"]);
+			case "hurtboxes":
+				call(core, on ? ["method_1651", "EnableHurtboxes"] : ["method_603", "DisableHurtboxes"]);
+			case "spawns":
+				var items:Dynamic = Reflect.field(core, "var_14491");
+				if (items == null) items = Reflect.field(core, "mItemManager");
+				if (items != null) call(items, ["method_2249"]);
+			default:
+		}
+	}
+
+	function capture(tex:h3d.mat.Texture, e:h3d.Engine):hxd.Pixels {
+		#if hldx
+		var dx = Std.downcast(e.driver, h3d.impl.DirectXDriver);
+		if (dx != null) {
+			if (readback == null || readback.width != tex.width || readback.height != tex.height || readback.format != tex.format)
+				readback = hxd.Pixels.alloc(tex.width, tex.height, tex.format);
+			@:privateAccess dx.captureTexPixels(readback, tex, 0, 0);
+			return readback;
+		}
+		#end
+		return tex.capturePixels();
+	}
+
 	override function render(e:h3d.Engine):Void {
 		super.render(e);
 		if (phase != 2 || !acked || frames == sentFrame || lastFrame == null) return;
 		sentFrame = frames;
 		try {
-			var pixels = shrunk(e).capturePixels();
+			var pixels = capture(shrunk(e), e);
 			if (e.driver.hasFeature(BottomLeftCoords)) pixels.flipY();
 			var format = switch (pixels.format) {
 				case RGBA: 0;

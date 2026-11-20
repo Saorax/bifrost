@@ -40,7 +40,7 @@ from tools import engine_stamp, game_files
 
 DEFAULT_OUT = ROOT / "build" / "player-kit"
 DEFAULT_ENGINE = Path("C:/Coding/BRAWLHALLA PROJECTS/bifrost/bifrost-main")
-VERSION = "11.01"
+VERSION = "11.01.36"
 
 METADATA = [
     "client/symbols/10.11.json",

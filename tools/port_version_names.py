@@ -47,7 +47,7 @@ def matched_names(src: str, dst: str) -> dict[str, str]:
     via = via_version(src, dst)
     if via is None:
         return names | table_names(src, dst, names)
-    first = version_match.match_versions(src, via, root=ROOT)[0]
+    first = matched_names(src, via)
     second = version_match.match_versions(via, dst, root=ROOT)[0]
     taken = set(names.values())
     for name, middle in first.items():
